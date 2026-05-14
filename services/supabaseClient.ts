@@ -7,8 +7,8 @@ export const SUPABASE_KEY_KEY = 'erp_supabase_key';
 
 const getStoredConfig = () => {
     return {
-        url: import.meta.env.VITE_SUPABASE_URL || localStorage.getItem(SUPABASE_URL_KEY) || '',
-        key: import.meta.env.VITE_SUPABASE_ANON_KEY || localStorage.getItem(SUPABASE_KEY_KEY) || ''
+        url: import.meta.env.VITE_SUPABASE_URL || localStorage.getItem(SUPABASE_URL_KEY) || 'https://alznpkfamcgctfstgbya.supabase.co',
+        key: import.meta.env.VITE_SUPABASE_ANON_KEY || localStorage.getItem(SUPABASE_KEY_KEY) || 'sb_publishable_qAyAPKjoJZlxf_IGm1whMg_7vPmJpuQ'
     };
 };
 
