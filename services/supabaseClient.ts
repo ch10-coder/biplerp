@@ -7,8 +7,8 @@ export const SUPABASE_KEY_KEY = 'erp_supabase_key';
 
 const getStoredConfig = () => {
     return {
-        url: localStorage.getItem(SUPABASE_URL_KEY) || '',
-        key: localStorage.getItem(SUPABASE_KEY_KEY) || ''
+        url: import.meta.env.VITE_SUPABASE_URL || localStorage.getItem(SUPABASE_URL_KEY) || '',
+        key: import.meta.env.VITE_SUPABASE_ANON_KEY || localStorage.getItem(SUPABASE_KEY_KEY) || ''
     };
 };
 
