@@ -1,0 +1,5 @@
+{
+  "name": "ERP",
+  "description": "A dark-themed, responsive ERP for inventory management. Features daily bill entries, material issuance, stock taking, and reporting.",
+  "requestFramePermissions": []
+}
