@@ -411,18 +411,20 @@ const recalculateFIFOHistory = (materialId: string, data: AppData) => {
     let negativeBacklog: { txId: string, qtyNeeded: number }[] = [];
     txs.forEach(t => {
         if (t.type === 'PURCHASE' || (t.type === 'ADJUSTMENT' && t.quantity > 0)) {
-            let rate = t.rate;
+            // Use a LOCAL variable for FIFO calculation — never overwrite t.rate / t.avgRate
+            // t.rate = basic purchase rate (no freight), t.avgRate = landed cost (with freight)
+            // Both must be preserved exactly as entered/uploaded by the user
+            let fifoRate = t.avgRate || t.rate; // Use landed cost for FIFO valuation
             let totalBasicValue = t.totalValue;
             
-            // Recalculate rate from Total Value if available (Source of Truth)
+            // If we have totalValue, derive the pre-GST basic value for FIFO ledger
             if (t.totalValue > 0 && t.quantity > 0) {
                  const basicVal = t.totalValue - (t.gstAmount || 0);
-                 rate = basicVal / t.quantity; 
+                 fifoRate = basicVal / t.quantity;
                  totalBasicValue = basicVal;
-                 // Self-heal the transaction object in memory
-                 t.rate = rate; 
-                 t.avgRate = rate;
+                 // DO NOT overwrite t.rate or t.avgRate — they are user data
             }
+            const rate = fifoRate; // alias for rest of function
             
             let remainingQty = t.quantity;
             let remainingVal = totalBasicValue;

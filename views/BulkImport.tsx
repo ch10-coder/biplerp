@@ -394,8 +394,13 @@ const BulkImport: React.FC<Props> = ({ onComplete }) => {
                             const q = cleanNumber(gv('qty')); if (!gv('name') || (q <= 0 && gv('qty') === '')) return null;
                             let r = cleanNumber(gv('rate')); const ar = cleanNumber(gv('avgRate')); const d = cleanNumber(gv('discount')); const f = cleanNumber(gv('freight'));
                             const gr = mappings.find(x => x.key === 'gstRate')?.index !== -1 ? cleanNumber(gv('gstRate')) : defaultGst;
+                            const rateColMapped = (mappings.find(x => x.key === 'rate')?.index ?? -1) !== -1;
                             let tv = 0; let src = 'AUTO';
-                            if (mappings.find(x => x.key === 'totalValue')?.index !== -1) { tv = cleanNumber(gv('totalValue')); src = 'CSV'; if(q > 0) r = (tv / (1 + gr/100) + d - f) / q; }
+                            if (mappings.find(x => x.key === 'totalValue')?.index !== -1) {
+                                tv = cleanNumber(gv('totalValue')); src = 'CSV';
+                                // Only back-calculate rate if user did NOT provide it explicitly
+                                if (q > 0 && (!rateColMapped || r === 0)) r = (tv / (1 + gr/100) + d - f) / q;
+                            }
                             else if (mappings.find(x => x.key === 'avgRate')?.index !== -1 && ar > 0) { const tx = ar * q; tv = tx + tx * (gr/100); src = 'AVG*QTY'; }
                             else { const tx = q * r - d + f; tv = tx + tx * (gr/100); }
                             return { mrnNo: gv('mrnNo'), mrnDate: parseDate(gv('mrnDate')), grnNo: gv('grnNo'), billNo: gv('billNo') || 'OPENING', billDate: parseDate(gv('billDate')), vendor: gv('vendor') || 'Unknown', name: gv('name'), unit: gv('unit') || 'Nos', qty: q, rate: r, avgRate: ar, discount: d, freight: f, gstRate: gr, totalValue: tv, source: src, department: gv('department') || 'Store', location: gv('location'), group: gv('group') || 'General' };
