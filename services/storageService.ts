@@ -2,6 +2,29 @@
 import { AppData, Material, Transaction, SavedReport, AppSettings, Task } from '../types';
 import { supabase } from './supabaseClient';
 
+// --- In-Memory Cache (prevents redundant DB downloads) ---
+interface CacheEntry {
+    data: AppData;
+    fetchedAt: number;
+}
+let _cache: CacheEntry | null = null;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+export const getCachedData = (): AppData | null => {
+    if (_cache && (Date.now() - _cache.fetchedAt) < CACHE_TTL_MS) {
+        return _cache.data;
+    }
+    return null;
+};
+
+export const setCacheData = (data: AppData): void => {
+    _cache = { data, fetchedAt: Date.now() };
+};
+
+export const invalidateCache = (): void => {
+    _cache = null;
+};
+
 // --- Default Data ---
 const initialData: AppData = {
   materials: [],
@@ -98,9 +121,19 @@ const fetchAllRows = async (tableName: string) => {
 
 // --- Core Data Access ---
 
-export const getAppData = async (): Promise<AppData> => {
+export const getAppData = async (forceRefresh = false): Promise<AppData> => {
     if (!supabase) return initialData;
 
+    // Return cached data if still fresh and not forced to refresh
+    if (!forceRefresh) {
+        const cached = getCachedData();
+        if (cached) {
+            console.log('[Cache] Serving data from in-memory cache (no DB fetch)');
+            return cached;
+        }
+    }
+
+    console.log('[Cache] Cache miss — fetching from Supabase...');
     try {
         const [materials, transactions, metaRes] = await Promise.all([
             fetchAllRows('materials'),
@@ -123,6 +156,7 @@ export const getAppData = async (): Promise<AppData> => {
         };
 
         if (data.appSettings.theme === undefined) data.appSettings.theme = 'default';
+        setCacheData(data);
         return data;
     } catch (e) {
         console.error("Supabase Load Error:", e);
@@ -142,12 +176,14 @@ export const updateMeta = async (data: AppData) => {
         lastAction: data.lastAction
     };
     await supabase.from('app_meta').upsert({ id: 1, data: metaPayload });
+    // Update cache with latest meta so next getAppData() doesn't re-fetch
+    setCacheData(data);
 };
 
 // --- Propagation Helper ---
 export const propagateItemCategorization = async (materialId: string, newGroup: string, newDept: string) => {
     if (!supabase) return;
-    const data = await getAppData();
+    const data = await getAppData(); // Uses cache if available
     
     // 1. Update Material Record
     const matIndex = data.materials.findIndex(m => m.id === materialId);
@@ -185,7 +221,7 @@ export const saveAppData = async (data: AppData) => {
 
 export const addTransactions = async (newTransactions: Transaction[]) => {
   if (!supabase || newTransactions.length === 0) return;
-  const data = await getAppData();
+  const data = await getAppData(); // Uses cache — no extra DB download
   
   const potentialVendors = new Set<string>();
   const potentialDepts = new Set<string>();
@@ -216,13 +252,16 @@ export const addTransactions = async (newTransactions: Transaction[]) => {
   if (newTransactions.length > 0) {
       logLastAction(data, 'ADD', newTransactions[0].type === 'PURCHASE' ? `Bill: ${newTransactions[0].billNo}` : `Issue: ${newTransactions.length} Items`);
   }
+  // updateMeta also updates the cache with the latest state
   await updateMeta(data);
 };
 
 export const addMaterial = async (material: Material) => {
   if (!supabase) return;
   await supabase.from('materials').insert(material);
-  const data = await getAppData(); 
+  // Update cache directly instead of re-fetching from DB
+  const data = await getAppData();
+  data.materials.push(material);
   ensureMasterData(data, [], [material.department], [material.group]);
   await updateMeta(data);
   return material; 
@@ -231,7 +270,11 @@ export const addMaterial = async (material: Material) => {
 export const updateMaterial = async (updatedMaterial: Material) => {
   if (!supabase) return;
   await supabase.from('materials').update(updatedMaterial).eq('id', updatedMaterial.id);
+  // Update cache directly instead of re-fetching from DB
   const data = await getAppData();
+  const idx = data.materials.findIndex(m => m.id === updatedMaterial.id);
+  if (idx !== -1) data.materials[idx] = updatedMaterial;
+  else data.materials.push(updatedMaterial);
   ensureMasterData(data, [], [updatedMaterial.department], [updatedMaterial.group]);
   await updateMeta(data);
 };
@@ -239,18 +282,23 @@ export const updateMaterial = async (updatedMaterial: Material) => {
 export const updateTransaction = async (updatedTx: Transaction) => {
     if (!supabase) return;
     await supabase.from('transactions').update(updatedTx).eq('id', updatedTx.id);
+    // Use cache — no extra DB download
     const data = await getAppData();
     const index = data.transactions.findIndex(t => t.id === updatedTx.id);
     if (index !== -1) data.transactions[index] = updatedTx;
     recalculateFIFOHistory(updatedTx.materialId, data);
     recalculateMaterialState(updatedTx.materialId, data);
     const mat = data.materials.find(m => m.id === updatedTx.materialId);
-    if (mat) await supabase.from('materials').update(mat).eq('id', mat.id);
+    if (mat) {
+        await supabase.from('materials').update(mat).eq('id', mat.id);
+        // Persist updated cache state
+        setCacheData(data);
+    }
 };
 
 export const deleteTransaction = async (transactionId: string) => {
     if (!supabase) return;
-    const data = await getAppData();
+    const data = await getAppData(); // Uses cache
     const tx = data.transactions.find(t => t.id === transactionId);
     if (!tx) return;
     await supabase.from('transactions').delete().eq('id', transactionId);
@@ -258,7 +306,10 @@ export const deleteTransaction = async (transactionId: string) => {
     recalculateFIFOHistory(tx.materialId, data);
     recalculateMaterialState(tx.materialId, data);
     const mat = data.materials.find(m => m.id === tx.materialId);
-    if (mat) await supabase.from('materials').update(mat).eq('id', mat.id);
+    if (mat) {
+        await supabase.from('materials').update(mat).eq('id', mat.id);
+        setCacheData(data);
+    }
 };
 
 export const deleteBill = async (billNo: string, vendor: string) => {
@@ -465,6 +516,8 @@ export const resetAppData = async () => {
     await supabase.from('materials').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     const emptyMeta = { vendors: [], departments: [], groups: [], savedReports: [], tasks: [], lastAction: null };
     await supabase.from('app_meta').update({ data: emptyMeta }).eq('id', 1);
+    // Clear cache after reset so fresh data is fetched
+    invalidateCache();
 };
 
 const logLastAction = (data: AppData, type: 'ADD' | 'EDIT' | 'DELETE' | 'IMPORT' | 'SETTINGS', description: string) => {

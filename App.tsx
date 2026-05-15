@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ViewName, AppData } from './types';
-import { getAppData } from './services/storageService';
+import { getAppData, getCachedData, invalidateCache } from './services/storageService';
 import { supabase } from './services/supabaseClient'; // Import Client
 import Login from './views/Login'; // Import Login
 import Dashboard from './views/Dashboard';
@@ -40,6 +40,8 @@ const App = () => {
   const [data, setData] = useState<AppData | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCmdOpen, setIsCmdOpen] = useState(false);
+  // Tracks when we last triggered a write so Realtime doesn't re-download our own changes
+  const lastWriteTimestampRef = useRef<number>(0);
 
   // --- Auth Check ---
   useEffect(() => {
@@ -56,8 +58,8 @@ const App = () => {
       }
   }, []);
 
-  const refreshData = async () => {
-    const newData = await getAppData();
+  const refreshData = async (forceRefresh = false) => {
+    const newData = await getAppData(forceRefresh);
     setData(newData); 
   };
 
@@ -66,26 +68,42 @@ const App = () => {
       if (session) {
           refreshData();
 
-          // 1. Realtime Listener (Instant updates when app is open)
+          // 1. Realtime Listener — only triggers re-fetch for EXTERNAL changes
+          //    Skips if this browser just made a write in the last 3 seconds
           let channel: any = null;
           if (supabase) {
               channel = supabase.channel('public:db_changes')
               .on(
                   'postgres_changes',
                   { event: '*', schema: 'public' }, 
-                  (payload) => {
-                      console.log('Realtime change received!', payload);
-                      refreshData(); 
+                  (_payload) => {
+                      const timeSinceWrite = Date.now() - lastWriteTimestampRef.current;
+                      if (timeSinceWrite < 3000) {
+                          // This is our OWN write echoed back — skip the re-fetch
+                          console.log('[Realtime] Own write detected, skipping re-fetch to save egress.');
+                          return;
+                      }
+                      // External change from another device/user — force refresh
+                      console.log('[Realtime] External change detected, refreshing...');
+                      invalidateCache();
+                      refreshData(true);
                   }
               )
               .subscribe();
           }
 
-          // 2. Visibility Listener (Refreshes when you switch back to tab/unlock phone)
+          // 2. Visibility Listener — only re-fetches if data is older than 5 minutes
+          const STALE_THRESHOLD_MS = 5 * 60 * 1000;
           const handleVisibilityChange = () => {
               if (document.visibilityState === 'visible') {
-                  console.log('App active: Refreshing data...');
-                  refreshData();
+                  const cached = getCachedData();
+                  if (!cached) {
+                      // No cache at all — fetch fresh
+                      console.log('[Visibility] No cache, fetching...');
+                      refreshData(true);
+                  } else {
+                      console.log('[Visibility] Cache still fresh, skipping DB fetch.');
+                  }
               }
           };
           document.addEventListener('visibilitychange', handleVisibilityChange);
