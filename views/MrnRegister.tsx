@@ -23,8 +23,13 @@ const getValue = (t: Transaction, key: string, materials: any[]): string => {
     if (key === 'gstNo') return t.gstNo || '-';
     
     // Increased precision for rates to support 0.005 and derived calculation
-    if (key === 'rate' || key === 'avgRate') {
-        // PRECISION FIX: Derive rate from Total / Qty if possible
+    if (key === 'rate') {
+        // Show the actual basic rate as entered by the user
+        return (t.rate || 0).toFixed(4);
+    }
+    if (key === 'avgRate') {
+        // Show the landed/avg rate (derived from totalValue minus GST)
+        if (t.avgRate && t.avgRate > 0) return t.avgRate.toFixed(4);
         if (t.totalValue > 0 && t.quantity > 0) {
             const basicVal = t.totalValue - (t.gstAmount || 0);
             return (basicVal / t.quantity).toFixed(4);
