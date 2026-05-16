@@ -195,10 +195,13 @@ const StockRegister: React.FC<Props> = ({ data, onUpdate }) => {
         materials.forEach(mat => {
             const batches = calculateBatches(mat.id, data);
             batches.forEach(b => {
-                let batchRate = b.rate || 0;
+                // Landed/avg rate: derived from totalValue (includes freight, minus GST)
+                let landedRate = b.avgRate || b.rate || 0;
                 if (b.totalValue > 0 && b.quantity > 0) {
-                     batchRate = (b.totalValue - (b.gstAmount||0)) / b.quantity;
+                     landedRate = (b.totalValue - (b.gstAmount||0)) / b.quantity;
                 }
+                // Actual basic rate: the original rate entered on the bill
+                const actualRate = b.rate || landedRate;
 
                 allBatches.push({
                     uniqueId: `${b.id}_${mat.id}`,
@@ -211,8 +214,8 @@ const StockRegister: React.FC<Props> = ({ data, onUpdate }) => {
                     location: b.location || mat.location, 
                     unit: mat.unit,
                     remainingQty: b.remainingQty,
-                    rate: batchRate, 
-                    avgRate: batchRate, 
+                    rate: actualRate, 
+                    avgRate: landedRate, 
                     gstRate: b.gstRate || 0,
                     gstAmount: 0,
                     vendor: b.vendor || '-',
@@ -664,12 +667,15 @@ const StockRegister: React.FC<Props> = ({ data, onUpdate }) => {
                                                 <th className="p-3">Vendor / Bill</th>
                                                 <th className="p-3 text-right">Remaining</th>
                                                 <th className="p-3 text-right">Rate</th>
+                                                <th className="p-3 text-right">Avg Rate</th>
                                                 <th className="p-3 text-right">Value</th>
                                                 <th className="p-3">Loc</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-[var(--border-color)] bg-[var(--bg-card)]/50">
-                                            {ledgerBatches.map((b, i) => (
+                                            {ledgerBatches.map((b, i) => {
+                                                const landedRate = (b.totalValue > 0 && b.quantity > 0) ? (b.totalValue - (b.gstAmount || 0)) / b.quantity : (b.avgRate || b.rate);
+                                                return (
                                                 <tr key={i} className="hover:bg-[var(--bg-card-hover)] transition-colors">
                                                     <td className="p-3">
                                                         <div className="text-yellow-500 font-mono">{b.mrnNo || '-'}</div>
@@ -680,12 +686,14 @@ const StockRegister: React.FC<Props> = ({ data, onUpdate }) => {
                                                         <div className="text-[10px] text-blue-400 mt-0.5">{b.billNo}</div>
                                                     </td>
                                                     <td className="p-3 text-right font-bold text-[var(--text-primary)] font-mono">{b.remainingQty}</td>
-                                                    <td className="p-3 text-right font-mono">{b.rate.toFixed(4)}</td>
-                                                    <td className="p-3 text-right text-green-400 font-mono">{(b.remainingQty * b.rate).toFixed(2)}</td>
+                                                    <td className="p-3 text-right font-mono">{(b.rate || landedRate).toFixed(4)}</td>
+                                                    <td className="p-3 text-right font-mono text-cyan-400">{landedRate.toFixed(4)}</td>
+                                                    <td className="p-3 text-right text-green-400 font-mono">{(b.remainingQty * landedRate).toFixed(2)}</td>
                                                     <td className="p-3 text-[10px]">{b.location || selectedMaterial.location}</td>
                                                 </tr>
-                                            ))}
-                                            {ledgerBatches.length === 0 && <tr><td colSpan={6} className="p-6 text-center italic text-[var(--text-secondary)]">No active batches (Stock is 0)</td></tr>}
+                                                );
+                                            })}
+                                            {ledgerBatches.length === 0 && <tr><td colSpan={7} className="p-6 text-center italic text-[var(--text-secondary)]">No active batches (Stock is 0)</td></tr>}
                                         </tbody>
                                     </table>
                                 </div>
