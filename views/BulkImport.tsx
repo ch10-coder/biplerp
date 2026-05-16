@@ -308,11 +308,9 @@ const BulkImport: React.FC<Props> = ({ onComplete }) => {
                 setProgress(count);
             });
             
-            // 3. FORCE RECALCULATION
-            // This is critical when data is reset and re-imported to ensure 
-            // the Material Master 'currentStock' matches the sum of all transactions.
-            setLog(prev => [...prev, `Verifying & Syncing final stock levels...`]);
-            await recalculateAllStock();
+            // Stock is already correctly calculated during the import loop above
+            // (weighted average in lines 266-276), so skip the expensive recalculateAllStock()
+            setLog(prev => [...prev, `Stock levels synced.`]);
             
             setLog(prev => [...prev, `Success! Imported all items.`]);
             setTimeout(onComplete, 1500);

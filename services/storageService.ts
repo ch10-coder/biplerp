@@ -51,7 +51,7 @@ const initialData: AppData = {
   }
 };
 
-const CHUNK_SIZE = 20; 
+const CHUNK_SIZE = 200; 
 const MAX_ATTEMPTS = 10;
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -82,7 +82,7 @@ export const chunkedUpsert = async (tableName: string, items: any[], onProgress?
                 await sleep(delay);
             }
         }
-        await sleep(30); // Tiny breather
+        await sleep(5); // Tiny breather
     }
 };
 
