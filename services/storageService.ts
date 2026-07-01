@@ -240,6 +240,7 @@ export const addTransactions = async (newTransactions: Transaction[]) => {
   
   const matsToUpdate: Material[] = [];
   affectedMatIds.forEach(id => {
+      recalculateFIFOHistory(id, data);
       recalculateMaterialState(id, data);
       const m = data.materials.find(mat => mat.id === id);
       if (m) matsToUpdate.push(m);

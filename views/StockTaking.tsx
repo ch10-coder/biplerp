@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Material, Transaction, AppData } from '../types';
-import { updateMaterial, addTransactions, bulkUpdateMaterials, calculateBatches, repairMaterialTransactionValues } from '../services/storageService';
+import { updateMaterial, addTransactions, bulkUpdateMaterials, calculateBatches, repairMaterialTransactionValues, recalculateAllStock, getAppData } from '../services/storageService';
 import { Button } from '../components/ui/Button';
 import { MultiSelect } from '../components/ui/MultiSelect';
 import { Download, ChevronDown, FileText, ClipboardList, History, Info, CheckCheck, RotateCcw, Search, Filter, Layers, List, LayoutGrid, MapPin, Calendar, Hash, Tag, Building, X, Check, Undo2, FilterX, RefreshCw, AlertTriangle, Hammer } from 'lucide-react';
@@ -248,15 +248,29 @@ const StockTaking: React.FC<Props> = ({ data, onUpdate }) => {
             await addTransactions([adjustment]);
         }
 
+        // Re-read the fresh material after addTransactions has recalculated stock
+        const freshData = await getAppData();
+        const freshMat = freshData.materials.find(x => x.id === m.id);
+        
         await updateMaterial({
-            ...m,
-            currentStock: newStock,
+            ...(freshMat || m),
             location: editLocation,
             lastVerified: new Date().toISOString()
         });
         
         setActiveId(null);
         onUpdate();
+    };
+
+    const [isSyncing, setIsSyncing] = useState(false);
+    const handleSyncStock = async () => {
+        setIsSyncing(true);
+        try {
+            await recalculateAllStock();
+            onUpdate();
+        } finally {
+            setIsSyncing(false);
+        }
     };
 
     const handleResetVerification = async (e?: React.MouseEvent) => {
@@ -493,6 +507,9 @@ const StockTaking: React.FC<Props> = ({ data, onUpdate }) => {
                     <div className="flex gap-2 w-full md:w-auto justify-end relative">
                         <Button variant="secondary" onClick={onUpdate} className="text-xs py-1 px-3 h-8 flex items-center gap-2 border-[var(--border-color)] hover:bg-[var(--bg-main)]">
                             <RefreshCw size={14} /> Refresh
+                        </Button>
+                        <Button variant="secondary" onClick={handleSyncStock} disabled={isSyncing} className="text-xs py-1 px-3 h-8 flex items-center gap-2 bg-amber-100 dark:bg-amber-900/10 hover:bg-amber-200 dark:hover:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-300 dark:border-amber-900/30">
+                            <Hammer size={14} className={isSyncing ? 'animate-spin' : ''} /> {isSyncing ? 'Syncing...' : 'Sync Stock'}
                         </Button>
 
                         {viewMode === 'SUMMARY' && (
