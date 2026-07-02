@@ -248,12 +248,17 @@ const StockTaking: React.FC<Props> = ({ data, onUpdate }) => {
             await addTransactions([adjustment]);
         }
 
-        // Re-read the fresh material after addTransactions has recalculated stock
+        // Update material metadata (location, verification timestamp)
+        // Use the recalculated stock from addTransactions if diff !== 0,
+        // otherwise keep the current stock as-is
         const freshData = await getAppData();
         const freshMat = freshData.materials.find(x => x.id === m.id);
+        const correctStock = freshMat ? freshMat.currentStock : newStock;
         
         await updateMaterial({
-            ...(freshMat || m),
+            ...m,
+            currentStock: correctStock,
+            pricePerUnit: freshMat?.pricePerUnit ?? m.pricePerUnit,
             location: editLocation,
             lastVerified: new Date().toISOString()
         });
