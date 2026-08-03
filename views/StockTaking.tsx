@@ -18,6 +18,7 @@ const StockTaking: React.FC<Props> = ({ data, onUpdate }) => {
     const [viewMode, setViewMode] = useState<'SUMMARY' | 'REGISTER'>('SUMMARY');
 
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [editLocation, setEditLocation] = useState<string>('');
     
     // Verification Modal State
     const [verifyTarget, setVerifyTarget] = useState<Material | null>(null);
@@ -191,7 +192,22 @@ const StockTaking: React.FC<Props> = ({ data, onUpdate }) => {
     };
 
     const handleToggleDetail = (m: Material) => {
-        setActiveId(activeId === m.id ? null : m.id);
+        if (activeId === m.id) {
+            setActiveId(null);
+        } else {
+            setActiveId(m.id);
+            setEditLocation(m.location || '');
+        }
+    };
+
+    const handleLocationSave = async (m: Material) => {
+        await updateMaterial({
+            ...m,
+            location: editLocation.trim(),
+            lastVerified: new Date().toISOString()
+        });
+        setActiveId(null);
+        onUpdate();
     };
 
     const handleQuickVerify = (e: React.MouseEvent, m: Material) => {
@@ -588,6 +604,16 @@ const StockTaking: React.FC<Props> = ({ data, onUpdate }) => {
                                                             {activeBatches.length === 0 && <div className="text-xs text-[var(--text-secondary)] italic">System Stock is 0</div>}
                                                         </div>
                                                     </div>
+                                                </div>
+
+                                                <div className="flex items-end gap-3 mt-1">
+                                                    <div className="flex-1">
+                                                        <label className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase flex items-center gap-1"><MapPin size={10}/> Bin / Location</label>
+                                                        <input type="text" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} placeholder="e.g. RACK-A3" className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded p-2 text-sm text-[var(--text-primary)] mt-1 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 outline-none"/>
+                                                    </div>
+                                                    <Button onClick={() => handleLocationSave(m)} variant="success" className="py-2 px-4 h-[38px] flex items-center gap-1 text-xs">
+                                                        <Check size={14}/> Save
+                                                    </Button>
                                                 </div>
 
                                                 <div className="flex gap-2">
