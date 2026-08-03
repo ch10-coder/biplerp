@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Material, Transaction, AppData } from '../types';
-import { updateMaterial, addTransactions, bulkUpdateMaterials, calculateBatches, repairMaterialTransactionValues, recalculateAllStock, getAppData } from '../services/storageService';
+import { updateMaterial, bulkUpdateMaterials, calculateBatches, repairMaterialTransactionValues, recalculateAllStock } from '../services/storageService';
 import { Button } from '../components/ui/Button';
 import { MultiSelect } from '../components/ui/MultiSelect';
-import { Download, ChevronDown, FileText, ClipboardList, History, Info, CheckCheck, RotateCcw, Search, Filter, Layers, List, LayoutGrid, MapPin, Calendar, Hash, Tag, Building, X, Check, Undo2, FilterX, RefreshCw, AlertTriangle, Hammer } from 'lucide-react';
+import { Download, ChevronDown, FileText, ClipboardList, History, Info, CheckCheck, RotateCcw, Search, Filter, Layers, List, LayoutGrid, MapPin, Calendar, Hash, Tag, Building, X, Check, Undo2, FilterX, RefreshCw, AlertTriangle, Hammer, Trash2 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 
 interface Props {
@@ -18,8 +18,6 @@ const StockTaking: React.FC<Props> = ({ data, onUpdate }) => {
     const [viewMode, setViewMode] = useState<'SUMMARY' | 'REGISTER'>('SUMMARY');
 
     const [activeId, setActiveId] = useState<string | null>(null);
-    const [editStock, setEditStock] = useState<string>('');
-    const [editLocation, setEditLocation] = useState<string>('');
     
     // Verification Modal State
     const [verifyTarget, setVerifyTarget] = useState<Material | null>(null);
@@ -192,10 +190,8 @@ const StockTaking: React.FC<Props> = ({ data, onUpdate }) => {
             .slice(0, 5);
     };
 
-    const handleEditStart = (m: Material) => {
-        setActiveId(m.id);
-        setEditStock(m.currentStock.toString());
-        setEditLocation(m.location);
+    const handleToggleDetail = (m: Material) => {
+        setActiveId(activeId === m.id ? null : m.id);
     };
 
     const handleQuickVerify = (e: React.MouseEvent, m: Material) => {
@@ -226,46 +222,8 @@ const StockTaking: React.FC<Props> = ({ data, onUpdate }) => {
         }
     };
 
-    const handleSave = async (m: Material) => {
-        const newStock = parseFloat(editStock);
-        if (isNaN(newStock)) return;
-
-        const diff = newStock - m.currentStock;
-
-        if (diff !== 0) {
-            const adjustment: Transaction = {
-                id: Date.now().toString(),
-                type: 'ADJUSTMENT',
-                date: new Date().toISOString(),
-                materialId: m.id,
-                materialName: m.name,
-                quantity: diff,
-                rate: m.pricePerUnit,
-                totalValue: Math.abs(diff) * m.pricePerUnit,
-                department: m.department,
-                remarks: `Stock Take: Adjusted from ${m.currentStock} to ${newStock}`
-            };
-            await addTransactions([adjustment]);
-        }
-
-        // Update material metadata (location, verification timestamp)
-        // Use the recalculated stock from addTransactions if diff !== 0,
-        // otherwise keep the current stock as-is
-        const freshData = await getAppData();
-        const freshMat = freshData.materials.find(x => x.id === m.id);
-        const correctStock = freshMat ? freshMat.currentStock : newStock;
-        
-        await updateMaterial({
-            ...m,
-            currentStock: correctStock,
-            pricePerUnit: freshMat?.pricePerUnit ?? m.pricePerUnit,
-            location: editLocation,
-            lastVerified: new Date().toISOString()
-        });
-        
-        setActiveId(null);
-        onUpdate();
-    };
+    // Stock adjustment removed — Stock Taking is now verification-only
+    // Use Bill Entry to add purchases or Issue Material to reduce stock
 
     const [isSyncing, setIsSyncing] = useState(false);
     const handleSyncStock = async () => {
@@ -275,6 +233,20 @@ const StockTaking: React.FC<Props> = ({ data, onUpdate }) => {
             onUpdate();
         } finally {
             setIsSyncing(false);
+        }
+    };
+
+    const [isPurging, setIsPurging] = useState(false);
+    const handlePurgeAdjustments = async () => {
+        if (!confirm('This will DELETE all stock adjustment transactions and recalculate stock from purchases/issues only. Continue?')) return;
+        setIsPurging(true);
+        try {
+            const { purgeAllAdjustments } = await import('../services/storageService');
+            const count = await purgeAllAdjustments();
+            alert(`Deleted ${count} adjustment transaction(s). Stock recalculated.`);
+            onUpdate();
+        } finally {
+            setIsPurging(false);
         }
     };
 
@@ -516,7 +488,9 @@ const StockTaking: React.FC<Props> = ({ data, onUpdate }) => {
                         <Button variant="secondary" onClick={handleSyncStock} disabled={isSyncing} className="text-xs py-1 px-3 h-8 flex items-center gap-2 bg-amber-100 dark:bg-amber-900/10 hover:bg-amber-200 dark:hover:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-300 dark:border-amber-900/30">
                             <Hammer size={14} className={isSyncing ? 'animate-spin' : ''} /> {isSyncing ? 'Syncing...' : 'Sync Stock'}
                         </Button>
-
+                        <Button variant="secondary" onClick={handlePurgeAdjustments} disabled={isPurging} className="text-xs py-1 px-3 h-8 flex items-center gap-2 bg-red-100 dark:bg-red-900/10 hover:bg-red-200 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-900/30">
+                            <Trash2 size={14} className={isPurging ? 'animate-spin' : ''} /> {isPurging ? 'Purging...' : 'Purge Adjustments'}
+                        </Button>
                         {viewMode === 'SUMMARY' && (
                             <Button variant="secondary" onClick={handleResetVerification} className="text-xs py-1 px-3 h-8 flex items-center gap-2 bg-red-100 dark:bg-red-900/10 hover:bg-red-200 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-900/30">
                                 <RotateCcw size={14} /> Reset
@@ -565,10 +539,11 @@ const StockTaking: React.FC<Props> = ({ data, onUpdate }) => {
                                     <div key={m.id} className={`p-4 rounded-xl border transition-all ${activeId === m.id ? 'bg-[var(--bg-card)] border-blue-500 ring-2 ring-blue-500/20' : isGhost ? 'bg-red-100 dark:bg-red-900/10 border-red-300 dark:border-red-500/50' : isVerified ? 'bg-green-100 dark:bg-green-900/10 border-green-300 dark:border-green-800/50' : 'bg-[var(--bg-card)] border-[var(--border-color)]'}`}>
                                         {activeId === m.id ? (
                                             <div className="space-y-4 animate-fadeIn">
-                                                {/* Detail View (Edit Mode) */}
+                                                {/* Detail View (Read-Only) */}
                                                 <div className="border-b border-[var(--border-color)] pb-3 mb-2">
                                                     <h3 className="font-bold text-lg text-[var(--text-primary)]">{m.name}</h3>
                                                     {isGhost && <div className="text-xs text-red-500 dark:text-red-400 font-bold flex items-center gap-1 mt-1"><AlertTriangle size={12}/> Data Integrity Issue: Ghost Stock Detected</div>}
+                                                    <div className="text-sm text-[var(--text-secondary)] mt-1">System Stock: <span className="font-bold text-[var(--text-primary)] font-mono">{m.currentStock} {m.unit}</span></div>
                                                 </div>
                                                 
                                                 {/* Batches and History Grid */}
@@ -615,23 +590,17 @@ const StockTaking: React.FC<Props> = ({ data, onUpdate }) => {
                                                     </div>
                                                 </div>
 
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div><label className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase">Actual Qty</label><input type="number" value={editStock} onChange={(e) => setEditStock(e.target.value)} className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded p-3 text-2xl font-mono text-[var(--text-primary)] mt-1"/></div>
-                                                    <div><label className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase">Location</label><input type="text" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded p-3 text-lg text-[var(--text-primary)] mt-1"/></div>
-                                                </div>
-                                                
                                                 <div className="flex gap-2">
-                                                    <Button onClick={() => setActiveId(null)} variant="secondary" className="flex-1 py-3">Cancel</Button>
+                                                    <Button onClick={() => setActiveId(null)} variant="secondary" className="flex-1 py-3">Collapse</Button>
                                                     {isGhost && (
                                                         <Button onClick={(e) => handleFixGhost(e, m)} className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white flex items-center justify-center gap-2">
                                                             <Hammer size={16}/> Auto-Fix
                                                         </Button>
                                                     )}
-                                                    <Button onClick={() => handleSave(m)} variant="success" className="flex-1 py-3">Update</Button>
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="flex justify-between items-center cursor-pointer" onClick={() => handleEditStart(m)}>
+                                            <div className="flex justify-between items-center cursor-pointer" onClick={() => handleToggleDetail(m)}>
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-2">
                                                         <h3 className={`font-medium ${isVerified ? 'text-green-600 dark:text-green-500' : 'text-[var(--text-primary)]'}`}>

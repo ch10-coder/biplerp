@@ -651,3 +651,36 @@ export const mergeMasterEntries = async (type: string, variants: string[], maste
 export const saveReportConfiguration = async (r: SavedReport) => { const d = await getAppData(); d.savedReports.push(r); await updateMeta(d); };
 export const deleteReportConfiguration = async (id: string) => { const d = await getAppData(); d.savedReports = d.savedReports.filter(x=>x.id!==id); await updateMeta(d); };
 export const repairMaterialTransactionValues = async (id: string) => { const data = await getAppData(); recalculateFIFOHistory(id, data); recalculateMaterialState(id, data); const m = data.materials.find(x=>x.id===id); if (m) await supabase?.from('materials').update(m).eq('id', id); };
+
+// One-time cleanup: Delete ALL ADJUSTMENT transactions and recalculate affected materials
+export const purgeAllAdjustments = async (): Promise<number> => {
+    if (!supabase) return 0;
+    const data = await getAppData(true); // force refresh
+    const adjustments = data.transactions.filter(t => t.type === 'ADJUSTMENT');
+    if (adjustments.length === 0) return 0;
+    
+    const affectedMatIds = Array.from(new Set(adjustments.map(t => t.materialId)));
+    const adjIds = adjustments.map(t => t.id);
+    
+    // Delete from DB
+    for (let i = 0; i < adjIds.length; i += 200) {
+        const batch = adjIds.slice(i, i + 200);
+        await supabase.from('transactions').delete().in('id', batch);
+    }
+    
+    // Remove from local state
+    data.transactions = data.transactions.filter(t => t.type !== 'ADJUSTMENT');
+    
+    // Recalculate affected materials
+    const matsToUpdate: Material[] = [];
+    affectedMatIds.forEach(id => {
+        recalculateFIFOHistory(id, data);
+        recalculateMaterialState(id, data);
+        const m = data.materials.find(x => x.id === id);
+        if (m) matsToUpdate.push(m);
+    });
+    
+    if (matsToUpdate.length > 0) await chunkedUpsert('materials', matsToUpdate);
+    setCacheData(data);
+    return adjustments.length;
+};
