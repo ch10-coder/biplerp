@@ -125,7 +125,7 @@ const StockRegister: React.FC<Props> = ({ data, onUpdate }) => {
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
     const [dataMode, setDataMode] = useState<'AGGREGATE' | 'BATCH'>('AGGREGATE');
-    const [layoutMode, setLayoutMode] = useState<'TABLE' | 'CARD'>('TABLE');
+    const [layoutMode, setLayoutMode] = useState<'TABLE' | 'CARD'>(() => typeof window !== 'undefined' && window.innerWidth < 768 ? 'CARD' : 'TABLE');
     
     const [aggCols, setAggCols] = useState([
         { key: 'name', label: 'Item Name', width: 220, isNumeric: false },
@@ -398,64 +398,100 @@ const StockRegister: React.FC<Props> = ({ data, onUpdate }) => {
                     </div>
                 </div>
                 
-                <div className="flex flex-col md:flex-row gap-2 w-full lg:w-auto">
+                <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
                     {/* Search */}
-                    <div className="relative flex-1 md:w-56">
-                        <Search className="absolute left-3 top-2.5 text-gray-500" size={14}/>
+                    <div className="relative flex-1 min-w-[180px] sm:w-60">
+                        <Search className="absolute left-3 top-2.5 text-[var(--text-secondary)]" size={15}/>
                         <input 
                             type="text" 
-                            placeholder="Search..." 
+                            placeholder="Search catalog, group, location..." 
                             value={rawSearch} 
                             onChange={e => setRawSearch(e.target.value)} 
-                            className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg pl-9 pr-4 py-2 text-xs md:text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+                            className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl pl-9 pr-8 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] shadow-inner transition-all"
                         />
+                        {rawSearch && (
+                            <button 
+                                type="button" 
+                                onClick={() => setRawSearch('')}
+                                className="absolute right-2.5 top-2.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                            >
+                                <X size={14} />
+                            </button>
+                        )}
                     </div>
 
                     {/* Mode Toggle */}
-                    <div className="flex bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-0.5">
+                    <div className="flex bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-1 shadow-sm">
                         <button 
+                            type="button"
                             onClick={() => setDataMode('AGGREGATE')}
-                            className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${dataMode === 'AGGREGATE' ? 'bg-[var(--accent)] text-white shadow-md' : 'text-gray-400 hover:text-[var(--text-primary)]'}`}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${dataMode === 'AGGREGATE' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                         >
                             Summary
                         </button>
                         <button 
+                            type="button"
                             onClick={() => setDataMode('BATCH')}
-                            className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 transition-all ${dataMode === 'BATCH' ? 'bg-[var(--accent)] text-white shadow-md' : 'text-gray-400 hover:text-[var(--text-primary)]'}`}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${dataMode === 'BATCH' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                         >
                             Batches
                         </button>
                     </div>
 
                     {/* View Toggle */}
-                    <div className="flex bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-0.5">
-                        <button onClick={() => setLayoutMode('TABLE')} className={`p-1.5 rounded ${layoutMode === 'TABLE' ? 'bg-[var(--accent)] text-white shadow-md' : 'text-gray-400 hover:text-[var(--text-primary)]'}`}><List size={16}/></button>
-                        <button onClick={() => setLayoutMode('CARD')} className={`p-1.5 rounded ${layoutMode === 'CARD' ? 'bg-[var(--accent)] text-white shadow-md' : 'text-gray-400 hover:text-[var(--text-primary)]'}`}><LayoutGrid size={16}/></button>
+                    <div className="flex bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-1 shadow-sm">
+                        <button 
+                            type="button"
+                            onClick={() => setLayoutMode('TABLE')} 
+                            className={`p-1.5 rounded-lg transition-all cursor-pointer ${layoutMode === 'TABLE' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                            title="Table View"
+                        >
+                            <List size={16}/>
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={() => setLayoutMode('CARD')} 
+                            className={`p-1.5 rounded-lg transition-all cursor-pointer ${layoutMode === 'CARD' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                            title="Card Grid View"
+                        >
+                            <LayoutGrid size={16}/>
+                        </button>
                     </div>
 
                     {/* Sort Dropdown */}
-                    <div className="relative flex items-center bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg px-2">
-                        <span className="text-[var(--text-secondary)] text-xs mr-1 hidden md:inline">Sort:</span>
+                    <div className="flex items-center bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-2.5 py-1 shadow-sm">
+                        <span className="text-[var(--text-secondary)] text-xs mr-1 font-semibold hidden sm:inline">Sort:</span>
                         <select 
                             value={sortBy} 
                             onChange={(e) => setSortBy(e.target.value as any)} 
-                            className="bg-transparent text-[var(--text-primary)] text-xs border-none focus:ring-0 cursor-pointer"
+                            className="bg-transparent text-[var(--text-primary)] text-xs font-semibold border-none focus:outline-none cursor-pointer pr-1"
                         >
-                            <option value="name">Name</option>
-                            <option value="stock">Stock</option>
-                            <option value="value">Value</option>
-                            <option value="date">Date</option>
+                            <option value="name" className="bg-[var(--bg-card)]">Name</option>
+                            <option value="stock" className="bg-[var(--bg-card)]">Stock</option>
+                            <option value="value" className="bg-[var(--bg-card)]">Value</option>
+                            <option value="date" className="bg-[var(--bg-card)]">Date</option>
                         </select>
-                        <button onClick={() => setSortDir(prev => prev === 'asc' ? 'desc' : 'asc')} className="ml-1 p-1 text-gray-400 hover:text-[var(--text-primary)]">
+                        <button 
+                            type="button"
+                            onClick={() => setSortDir(prev => prev === 'asc' ? 'desc' : 'asc')} 
+                            className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                            title={`Direction: ${sortDir.toUpperCase()}`}
+                        >
                             <ArrowUpDown size={14} />
                         </button>
                     </div>
 
                     {/* Columns & Export */}
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-1.5">
                         <div className="relative" onClick={e => e.stopPropagation()}>
-                            <Button variant="secondary" onClick={() => setIsColSelectorOpen(!isColSelectorOpen)} className="px-2 h-full">
-                                <SlidersHorizontal size={16} />
+                            <Button 
+                                variant="secondary" 
+                                size="sm" 
+                                onClick={() => setIsColSelectorOpen(!isColSelectorOpen)} 
+                                className="px-2.5 py-1.5 rounded-xl cursor-pointer"
+                                title="Manage Columns"
+                            >
+                                <SlidersHorizontal size={15} />
                             </Button>
                             {isColSelectorOpen && (
                                 <div className={`absolute top-full mt-2 w-64 glass-effect rounded-lg shadow-2xl z-50 p-2 max-h-80 overflow-y-auto left-0 lg:left-auto lg:right-0 bg-[var(--bg-card)]`}>

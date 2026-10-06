@@ -105,26 +105,26 @@ const WorkArea: React.FC = () => {
     };
 
     return (
-        <div className="h-full flex flex-col p-4 space-y-4">
-            <div className="flex justify-between items-center shrink-0">
+        <div className="flex-1 flex flex-col p-4 space-y-4 pb-24">
+            <div className="flex justify-between items-center shrink-0 flex-wrap gap-2">
                 <div>
-                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                    <h2 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-2">
                         <CheckSquare className="text-purple-500" size={24}/> Workspace
                     </h2>
-                    <p className="text-xs text-gray-400">Tools for quick calculations and notes.</p>
+                    <p className="text-xs text-[var(--text-secondary)]">Tools for quick calculations and notes.</p>
                 </div>
                 
                 {/* Tab Switcher */}
                 <div className="flex bg-[var(--bg-card)] p-1 rounded-lg border border-[var(--border-color)]">
                     <button 
                         onClick={() => setActiveTab('UTILITIES')}
-                        className={`px-4 py-2 text-xs font-bold rounded flex items-center gap-2 transition-all ${activeTab === 'UTILITIES' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                        className={`px-3 py-1.5 text-xs font-bold rounded flex items-center gap-2 transition-all ${activeTab === 'UTILITIES' ? 'bg-purple-600 text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                     >
                         <Calculator size={14}/> Utilities
                     </button>
                     <button 
                         onClick={() => setActiveTab('NOTES')}
-                        className={`px-4 py-2 text-xs font-bold rounded flex items-center gap-2 transition-all ${activeTab === 'NOTES' ? 'bg-yellow-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                        className={`px-3 py-1.5 text-xs font-bold rounded flex items-center gap-2 transition-all ${activeTab === 'NOTES' ? 'bg-yellow-600 text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                     >
                         <StickyNote size={14}/> Sticky Notes
                     </button>
@@ -132,10 +132,10 @@ const WorkArea: React.FC = () => {
             </div>
 
             {activeTab === 'UTILITIES' ? (
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 min-h-0 overflow-hidden">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 min-h-0 overflow-y-auto pb-12">
                     
                     {/* CALCULATOR - Neumorphic Style */}
-                    <div className="flex items-center justify-center h-full overflow-y-auto custom-scrollbar">
+                    <div className="flex items-center justify-center p-2">
                         <div className="bg-[#1e293b] border-4 border-[#334155] rounded-3xl p-5 shadow-2xl w-full max-w-xs relative">
                             {/* Screen */}
                             <div className="bg-[#0f172a] rounded-xl p-4 mb-5 shadow-inner border border-gray-700 relative overflow-hidden">
@@ -173,7 +173,7 @@ const WorkArea: React.FC = () => {
                     </div>
 
                     {/* SCRATCHPAD - Editor Style */}
-                    <div className="flex flex-col h-full bg-[#1e1e1e] border border-[#333] rounded-xl overflow-hidden shadow-xl">
+                    <div className="flex flex-col h-full min-h-[400px] bg-[#1e1e1e] border border-[#333] rounded-xl overflow-hidden shadow-xl">
                         <div className="flex justify-between items-center bg-[#252526] px-4 py-2 border-b border-[#333]">
                             <div className="flex items-center gap-2 text-xs text-[#cccccc] font-medium">
                                 <FileEdit size={14} className="text-yellow-500"/> UNTITLED.TXT

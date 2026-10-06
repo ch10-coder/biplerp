@@ -1,10 +1,15 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Material, TransactionType, Transaction, AppData, AppSettings } from '../types';
 import { addTransactions, addMaterial, getAppData, calculateBatches, saveEditedBill } from '../services/storageService';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { Copy, Plus, Trash2, Sparkles, AlertCircle, Info, ShoppingCart, ArrowRightLeft, Calculator, Calendar, Ban, Edit3, XCircle, Loader2, Save, Truck, User, FileText, Package, MapPin, Search, Check, X, ChevronRight, Hash, Box, Building } from 'lucide-react';
+import { Badge } from '../components/ui/Badge';
+import { 
+  Copy, Plus, Trash2, Sparkles, AlertCircle, Info, ShoppingCart, 
+  ArrowRightLeft, Calculator, Calendar, Ban, Edit3, XCircle, Loader2, 
+  Save, Truck, User, FileText, Package, MapPin, Search, Check, X, 
+  ChevronRight, Hash, Box, Building, ArrowRight, ShieldCheck, CheckCircle2
+} from 'lucide-react';
 
 interface Props {
     type: TransactionType;
@@ -52,7 +57,16 @@ interface IssueItemRow {
     valuation: number; 
 }
 
-const TransactionForm: React.FC<Props> = ({ type, materials, settings, onComplete, editMode = false, cloneMode = false, initialData, onCancel }) => {
+const TransactionForm: React.FC<Props> = ({ 
+    type, 
+    materials, 
+    settings, 
+    onComplete, 
+    editMode = false, 
+    cloneMode = false, 
+    initialData, 
+    onCancel 
+}) => {
     const appSettings = settings || { defaultGstRate: 18, currencySymbol: '₹', defaultMinLevel: 5, enableNegativeStock: false };
 
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -84,8 +98,9 @@ const TransactionForm: React.FC<Props> = ({ type, materials, settings, onComplet
 
     // Helper State
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedGroupFilter, setSelectedGroupFilter] = useState('ALL');
     const [activeRowId, setActiveRowId] = useState<string | null>(null);
-    const [pickerMode, setPickerMode] = useState<'PURCHASE' | 'ISSUE'>('ISSUE');
+    const [pickerMode, setPickerMode] = useState<'PURCHASE' | 'ISSUE'>('PURCHASE');
     const [cachedAppData, setCachedAppData] = useState<AppData | null>(null);
     const [isPickerOpen, setIsPickerOpen] = useState(false);
 
@@ -93,13 +108,12 @@ const TransactionForm: React.FC<Props> = ({ type, materials, settings, onComplet
         getAppData().then(setCachedAppData);
     }, []);
 
-    // NEW: Logic to extract unique historical receivers for auto-suggestions
+    // Extract unique historical receivers for auto-suggestions
     const historicalReceivers = useMemo(() => {
         if (!cachedAppData) return [];
         const receivers = new Set<string>();
         cachedAppData.transactions.forEach(t => {
             if (t.type === 'ISSUE' && t.remarks) {
-                // Parse out "Receiver: [name] |" pattern used in submitIssue
                 const match = t.remarks.match(/^Receiver: (.*?) \|/);
                 if (match && match[1]) {
                     const name = match[1].trim();
@@ -119,7 +133,25 @@ const TransactionForm: React.FC<Props> = ({ type, materials, settings, onComplet
         return Array.from(depts).sort();
     }, [cachedAppData]);
 
-    // INIT DATA
+    // Unique groups for modal filtering
+    const uniqueGroups = useMemo(() => {
+        const groups = new Set<string>();
+        materials.forEach(m => { if (m.group) groups.add(m.group.trim()); });
+        return ['ALL', ...Array.from(groups).sort()];
+    }, [materials]);
+
+    // Keyboard listener to close picker with ESC
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isPickerOpen) {
+                setIsPickerOpen(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isPickerOpen]);
+
+    // INIT DATA FOR EDIT / CLONE MODE
     useEffect(() => {
         if (initialData && type === 'PURCHASE') {
             const h = initialData.header;
@@ -193,6 +225,59 @@ const TransactionForm: React.FC<Props> = ({ type, materials, settings, onComplet
         setPurchaseItems(items => items.map(item => item.tempId === id ? { ...item, [field]: value } : item));
     };
 
+    const handleAddPurchaseRow = () => {
+        setPurchaseItems(prev => [
+            ...prev,
+            { 
+                tempId: Date.now().toString() + Math.random().toString().slice(2, 5), 
+                materialId: '', 
+                materialName: '', 
+                isNew: false, 
+                group: '', 
+                department: '', 
+                location: '', 
+                unit: 'Nos', 
+                hsn: '', 
+                description: '', 
+                qty: 0, 
+                rate: 0, 
+                discountPercent: 0, 
+                gstRate: appSettings.defaultGstRate || 18 
+            }
+        ]);
+    };
+
+    const handleRemovePurchaseRow = (id: string) => {
+        if (purchaseItems.length === 1) {
+            setPurchaseItems([{ 
+                tempId: Date.now().toString(), 
+                materialId: '', 
+                materialName: '', 
+                isNew: false, 
+                group: '', 
+                department: '', 
+                location: '', 
+                unit: 'Nos', 
+                hsn: '', 
+                description: '', 
+                qty: 0, 
+                rate: 0, 
+                discountPercent: 0, 
+                gstRate: appSettings.defaultGstRate || 18 
+            }]);
+            return;
+        }
+        setPurchaseItems(prev => prev.filter(r => r.tempId !== id));
+    };
+
+    const handleOpenPicker = (rowId: string, mode: 'PURCHASE' | 'ISSUE') => {
+        setActiveRowId(rowId);
+        setPickerMode(mode);
+        setSearchTerm('');
+        setSelectedGroupFilter('ALL');
+        setIsPickerOpen(true);
+    };
+
     const handlePurchaseMatSelect = (material: Material) => {
         if (!activeRowId) return;
         setPurchaseItems(items => items.map(item => item.tempId === activeRowId ? {
@@ -203,7 +288,7 @@ const TransactionForm: React.FC<Props> = ({ type, materials, settings, onComplet
             group: material.group, 
             department: material.department, 
             location: material.location, 
-            unit: material.unit, 
+            unit: material.unit || 'Nos', 
             hsn: material.hsn || '', 
             description: material.description || '', 
             gstRate: material.gstRate || defaultBillGst
@@ -214,10 +299,10 @@ const TransactionForm: React.FC<Props> = ({ type, materials, settings, onComplet
     };
 
     const handleCreateNewFromPicker = () => {
-        if (!activeRowId || !searchTerm) return;
+        if (!activeRowId || !searchTerm.trim()) return;
         setPurchaseItems(items => items.map(item => item.tempId === activeRowId ? {
             ...item, 
-            materialName: searchTerm, 
+            materialName: searchTerm.trim(), 
             isNew: true, 
             materialId: '', 
             unit: 'Nos',
@@ -227,11 +312,14 @@ const TransactionForm: React.FC<Props> = ({ type, materials, settings, onComplet
         setSearchTerm(''); 
         setActiveRowId(null);
         setIsPickerOpen(false);
-    }
+    };
 
     // HANDLERS: ISSUE
     const handleAddIssueRow = () => {
-        setIssueItems([...issueItems, { tempId: Date.now().toString(), materialId: '', materialName: '', currentStock: 0, unit: '', qty: 0, remarks: '', batchesUsed: [], valuation: 0 }]);
+        setIssueItems(prev => [
+            ...prev, 
+            { tempId: Date.now().toString() + Math.random().toString().slice(2, 5), materialId: '', materialName: '', currentStock: 0, unit: '', qty: 0, remarks: '', batchesUsed: [], valuation: 0 }
+        ]);
     };
 
     const handleRemoveIssueRow = (id: string) => {
@@ -239,7 +327,7 @@ const TransactionForm: React.FC<Props> = ({ type, materials, settings, onComplet
             setIssueItems([{ tempId: Date.now().toString(), materialId: '', materialName: '', currentStock: 0, unit: '', qty: 0, remarks: '', batchesUsed: [], valuation: 0 }]);
             return;
         }
-        setIssueItems(issueItems.filter(i => i.tempId !== id));
+        setIssueItems(prev => prev.filter(i => i.tempId !== id));
     };
 
     const handleIssueMatSelect = (material: Material) => {
@@ -297,8 +385,14 @@ const TransactionForm: React.FC<Props> = ({ type, materials, settings, onComplet
     // SUBMIT: PURCHASE
     const submitPurchase = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError('');
         setIsSubmitting(true);
-        if (!billNo || !vendor) { setError("Bill No and Vendor are required"); setIsSubmitting(false); return; }
+        if (!billNo.trim() || !vendor.trim()) { 
+            setError("Bill No and Vendor Name are required."); 
+            setIsSubmitting(false); 
+            return; 
+        }
+
         let totalTaxableValue = 0;
         purchaseItems.forEach(row => {
             if ((!row.materialId && !row.isNew) || row.qty <= 0) return;
@@ -306,13 +400,27 @@ const TransactionForm: React.FC<Props> = ({ type, materials, settings, onComplet
             const discAmt = base * (row.discountPercent / 100);
             totalTaxableValue += (base - discAmt);
         });
+
         const txs: Transaction[] = [];
         const materialEntryDate = mrnDate || grnDate || date;
         for (const row of purchaseItems) {
             if ((!row.materialId && !row.isNew) || row.qty <= 0) continue;
             let matId = row.materialId;
             if (row.isNew) {
-                const newMat: Material = { id: Date.now().toString()+Math.random().toString().slice(2,5), name: row.materialName, group: row.group, department: row.department, unit: row.unit, location: row.location, currentStock: 0, pricePerUnit: 0, hsn: row.hsn, gstRate: row.gstRate, description: row.description, minLevel: appSettings.defaultMinLevel || 5 };
+                const newMat: Material = { 
+                    id: Date.now().toString() + Math.random().toString().slice(2, 5), 
+                    name: row.materialName, 
+                    group: row.group || 'General', 
+                    department: row.department || 'Store', 
+                    unit: row.unit || 'Nos', 
+                    location: row.location || '', 
+                    currentStock: 0, 
+                    pricePerUnit: 0, 
+                    hsn: row.hsn, 
+                    gstRate: row.gstRate, 
+                    description: row.description, 
+                    minLevel: appSettings.defaultMinLevel || 5 
+                };
                 await addMaterial(newMat); 
                 matId = newMat.id;
             }
@@ -320,302 +428,1012 @@ const TransactionForm: React.FC<Props> = ({ type, materials, settings, onComplet
             const discAmt = base * (row.discountPercent / 100);
             const taxable = base - discAmt;
             const gstAmt = taxable * (row.gstRate / 100);
-            let allocatedFreight = totalTaxableValue > 0 ? (taxable / totalTaxableValue) * billFreight : (billFreight > 0 && purchaseItems.length === 1 ? billFreight : 0);
+            const allocatedFreight = totalTaxableValue > 0 
+                ? (taxable / totalTaxableValue) * billFreight 
+                : (billFreight > 0 && purchaseItems.length === 1 ? billFreight : 0);
             const inventoryValue = taxable + allocatedFreight;
             const avgRate = row.qty > 0 ? inventoryValue / row.qty : 0; 
             const totalBillAmount = inventoryValue + gstAmt;
-            txs.push({ id: (editMode && row.txId) ? row.txId! : (Date.now().toString() + Math.random().toString().slice(2, 5)), type: 'PURCHASE', date: materialEntryDate, materialId: matId, materialName: row.materialName, quantity: row.qty, rate: row.rate, totalValue: totalBillAmount, billNo, billDate: date, vendor, gstNo, grnNo, grnDate, mrnNo, mrnDate, discount: discAmt, freight: allocatedFreight, gstRate: row.gstRate, gstAmount: gstAmt, avgRate: avgRate, department: row.department, group: row.group, location: row.location });
+
+            txs.push({ 
+                id: (editMode && row.txId) ? row.txId! : (Date.now().toString() + Math.random().toString().slice(2, 5)), 
+                type: 'PURCHASE', 
+                date: materialEntryDate, 
+                materialId: matId, 
+                materialName: row.materialName, 
+                quantity: row.qty, 
+                rate: row.rate, 
+                totalValue: totalBillAmount, 
+                billNo, 
+                billDate: date, 
+                vendor, 
+                gstNo, 
+                grnNo, 
+                grnDate, 
+                mrnNo, 
+                mrnDate, 
+                discount: discAmt, 
+                freight: allocatedFreight, 
+                gstRate: row.gstRate, 
+                gstAmount: gstAmt, 
+                avgRate: avgRate, 
+                department: row.department, 
+                group: row.group, 
+                location: row.location 
+            });
         }
-        if (txs.length === 0) { setError("No valid items"); setIsSubmitting(false); return; }
+
+        if (txs.length === 0) { 
+            setError("Please add at least one valid item with Quantity > 0."); 
+            setIsSubmitting(false); 
+            return; 
+        }
+
         if (editMode && initialData) {
             const header = { entryDate: mrnDate || grnDate || date, billNo, billDate: date, vendor, gstNo, mrnNo, mrnDate, grnNo, grnDate };
             await saveEditedBill(initialData.header.billNo, initialData.header.vendor, header, txs);
-            setSuccess("Bill Updated Successfully!");
+            setSuccess("Bill updated successfully!");
         } else {
             await addTransactions(txs);
-            setSuccess(cloneMode ? "Bill Cloned & Saved!" : "Purchase Saved!"); 
+            setSuccess(cloneMode ? "Bill cloned and recorded!" : "Purchase bill recorded successfully!"); 
         }
         setIsSubmitting(false);
-        setTimeout(onComplete, 1000);
+        setTimeout(onComplete, 900);
     };
 
     // SUBMIT: ISSUE
     const submitIssue = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError('');
         setIsSubmitting(true);
-        if (!issueDept) { setError("Select Target Department"); setIsSubmitting(false); return; }
+        if (!issueDept) { 
+            setError("Please select the Target Department."); 
+            setIsSubmitting(false); 
+            return; 
+        }
+
         const txs: Transaction[] = [];
         let hasError = false;
         issueItems.forEach(row => {
             if (!row.materialId || row.qty <= 0) return;
             const canIssue = appSettings.enableNegativeStock || (row.qty <= row.currentStock + 0.001);
-            if (!canIssue) { setError(`Error: Insufficient stock for ${row.materialName}. Available: ${row.currentStock}`); hasError = true; return; }
+            if (!canIssue) { 
+                setError(`Insufficient stock for "${row.materialName}". Available: ${row.currentStock} ${row.unit}`); 
+                hasError = true; 
+                return; 
+            }
             const effRate = row.qty > 0 ? row.valuation / row.qty : 0;
             const batchRefs = row.batchesUsed.map(b => `#${b.id.slice(-4)}`).join(', ');
-            const fullRemark = `${issueReceiver ? `Receiver: ${issueReceiver} | ` : ''}${row.remarks} ${batchRefs ? `(Ref: ${batchRefs})` : ''}`;
-            txs.push({ id: Date.now().toString() + Math.random().toString().slice(2,5), type: 'ISSUE', date: date, materialId: row.materialId, materialName: row.materialName, quantity: row.qty, rate: effRate, totalValue: row.valuation, department: issueDept, remarks: fullRemark });
+            const fullRemark = `${issueReceiver ? `Receiver: ${issueReceiver} | ` : ''}${row.remarks || ''} ${batchRefs ? `(Ref: ${batchRefs})` : ''}`.trim();
+
+            txs.push({ 
+                id: Date.now().toString() + Math.random().toString().slice(2, 5), 
+                type: 'ISSUE', 
+                date: date, 
+                materialId: row.materialId, 
+                materialName: row.materialName, 
+                quantity: row.qty, 
+                rate: effRate, 
+                totalValue: row.valuation, 
+                department: issueDept, 
+                remarks: fullRemark 
+            });
         });
+
         if (hasError) { setIsSubmitting(false); return; }
-        if (txs.length === 0) { setError("No valid items to issue"); setIsSubmitting(false); return; }
+        if (txs.length === 0) { 
+            setError("Please add at least one material with Quantity > 0 to issue."); 
+            setIsSubmitting(false); 
+            return; 
+        }
+
         await addTransactions(txs);
-        setSuccess("Issue Saved!"); 
+        setSuccess("Material issue processed successfully!"); 
         setIssueItems([{ tempId: Date.now().toString(), materialId: '', materialName: '', currentStock: 0, unit: '', qty: 0, remarks: '', batchesUsed: [], valuation: 0 }]);
         setIsSubmitting(false);
-        setTimeout(onComplete, 1000);
+        setTimeout(onComplete, 900);
     };
 
     const filteredMaterialsForPicker = useMemo(() => {
         return materials.filter(m => {
             if (pickerMode === 'ISSUE' && m.currentStock <= 0) return false;
-            const term = searchTerm.toLowerCase();
+            if (selectedGroupFilter !== 'ALL' && m.group !== selectedGroupFilter) return false;
+            const term = searchTerm.toLowerCase().trim();
+            if (!term) return true;
             return m.name.toLowerCase().includes(term) || 
-                   m.group.toLowerCase().includes(term) || 
-                   m.department.toLowerCase().includes(term) ||
-                   (m.location || '').toLowerCase().includes(term);
-        }).sort((a,b) => b.currentStock - a.currentStock);
-    }, [materials, searchTerm, pickerMode]);
+                   (m.group || '').toLowerCase().includes(term) || 
+                   (m.department || '').toLowerCase().includes(term) ||
+                   (m.location || '').toLowerCase().includes(term) ||
+                   (m.hsn || '').toLowerCase().includes(term);
+        }).sort((a, b) => b.currentStock - a.currentStock);
+    }, [materials, searchTerm, pickerMode, selectedGroupFilter]);
 
-    if (!cachedAppData) return <div className="p-10 text-center"><Loader2 className="animate-spin inline-block text-[var(--accent)]"/> Loading data...</div>;
-
-    if (type === 'PURCHASE') {
+    if (!cachedAppData) {
         return (
-             <div className="space-y-4 pb-32 animate-fadeIn h-full flex flex-col">
-                <div className="flex justify-between items-center shrink-0">
-                    <h2 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-2">
-                        {editMode ? <Edit3 className="text-yellow-500" /> : cloneMode ? <Copy className="text-cyan-400" /> : <Truck className="text-green-500"/>} 
-                        {editMode ? 'Edit Bill' : cloneMode ? 'Clone Bill' : 'Inward Bill Entry'}
-                    </h2>
-                    <Button variant="secondary" onClick={onCancel || onComplete}>Cancel</Button>
+            <div className="p-16 flex flex-col items-center justify-center text-center">
+                <Loader2 className="animate-spin text-[var(--accent)] mb-3" size={32} />
+                <p className="text-sm font-semibold text-[var(--text-secondary)]">Loading inventory catalog...</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6 pb-20 max-w-7xl mx-auto animate-fadeIn">
+            
+            {/* Header Strip */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[var(--border-color)]">
+                <div>
+                    <div className="flex items-center gap-2.5">
+                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-lg ${
+                            type === 'PURCHASE' ? 'bg-gradient-to-br from-emerald-500 to-teal-700 shadow-emerald-500/20' : 'bg-gradient-to-br from-purple-500 to-indigo-700 shadow-purple-500/20'
+                        }`}>
+                            {type === 'PURCHASE' ? (editMode ? <Edit3 size={20}/> : <Truck size={20}/>) : <ShoppingCart size={20}/>}
+                        </div>
+                        <div>
+                            <h2 className="text-xl sm:text-2xl font-black text-[var(--text-primary)] tracking-tight">
+                                {type === 'PURCHASE' 
+                                    ? (editMode ? 'Edit Inward Bill' : cloneMode ? 'Clone Inward Bill' : 'Inward Bill Entry') 
+                                    : 'Material Issuance'}
+                            </h2>
+                            <p className="text-xs text-[var(--text-secondary)]">
+                                {type === 'PURCHASE' ? 'Record vendor inward invoice & FIFO stock receipts' : 'Multi-item departmental issue with automated FIFO batch valuation'}
+                            </p>
+                        </div>
+                    </div>
                 </div>
-                <form onSubmit={submitPurchase} className="flex-1 flex flex-col gap-4 overflow-hidden">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 shrink-0">
-                        <Card className="p-4 border-[var(--border-color)] bg-[var(--bg-card)]">
-                            <div className="flex items-center gap-2 mb-3 text-[var(--accent)] font-bold text-xs uppercase border-b border-[var(--border-color)] pb-2"><User size={14} /> Vendor & Invoice Info</div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="col-span-2"><label className="block text-[10px] text-[var(--text-secondary)] font-bold uppercase mb-1">Vendor Name <span className="text-red-500">*</span></label><input type="text" list="vendors" value={vendor} onChange={e=>setVendor(e.target.value)} className="w-full h-9 px-3 rounded-md text-sm font-medium focus:ring-2 focus:ring-[var(--accent)] text-[var(--text-primary)]" placeholder="Search Vendor..." required autoFocus /><datalist id="vendors">{cachedAppData?.vendors.map(v=><option key={v} value={v}/>)}</datalist></div>
-                                <div><label className="block text-[10px] text-[var(--text-secondary)] font-bold uppercase mb-1">Bill No <span className="text-red-500">*</span></label><input type="text" value={billNo} onChange={e=>setBillNo(e.target.value)} className="w-full h-9 px-3 rounded-md text-sm font-bold text-[var(--text-primary)]" placeholder="Invoice #" required /></div>
-                                <div><label className="block text-[10px] text-[var(--text-secondary)] font-bold uppercase mb-1">Bill Date <span className="text-red-500">*</span></label><input type="date" value={date} onChange={e=>setDate(e.target.value)} className="w-full h-9 px-3 rounded-md text-sm text-[var(--text-primary)]" required /></div>
-                                <div className="col-span-2"><label className="block text-[10px] text-[var(--text-secondary)] font-bold uppercase mb-1">GSTIN (Optional)</label><input type="text" value={gstNo} onChange={e=>setGstNo(e.target.value)} className="w-full h-9 px-3 rounded-md text-xs font-mono text-[var(--text-primary)]" placeholder="GST Number" /></div>
+
+                <div className="flex items-center gap-2">
+                    <Button 
+                        variant="secondary" 
+                        size="md" 
+                        onClick={onCancel || onComplete} 
+                        className="cursor-pointer"
+                    >
+                        Cancel
+                    </Button>
+                </div>
+            </div>
+
+            {/* Error & Success Feedback Alerts */}
+            {error && (
+                <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-400 flex items-center gap-3 animate-fadeIn">
+                    <AlertCircle size={18} className="shrink-0 text-rose-500" />
+                    <span className="text-xs sm:text-sm font-semibold">{error}</span>
+                </div>
+            )}
+            {success && (
+                <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 flex items-center gap-3 animate-fadeIn">
+                    <CheckCircle2 size={18} className="shrink-0 text-emerald-500" />
+                    <span className="text-xs sm:text-sm font-semibold">{success}</span>
+                </div>
+            )}
+
+            {/* ================= PURCHASE FORM ================= */}
+            {type === 'PURCHASE' ? (
+                <form onSubmit={submitPurchase} className="space-y-6">
+                    {/* Top Metadata Cards */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        
+                        {/* 1. Vendor & Invoice Info */}
+                        <Card 
+                            className="p-5" 
+                            headerIcon={<User size={18} />} 
+                            title="Vendor & Invoice Info" 
+                            subtitle="Billing credentials & dates"
+                        >
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="sm:col-span-2">
+                                    <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
+                                        Vendor Name <span className="text-rose-500">*</span>
+                                    </label>
+                                    <div className="relative">
+                                        <input 
+                                            type="text" 
+                                            list="vendors-datalist" 
+                                            value={vendor} 
+                                            onChange={e => setVendor(e.target.value)} 
+                                            className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl py-2.5 px-3.5 text-sm font-semibold text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-all shadow-inner" 
+                                            placeholder="Search or enter vendor name..." 
+                                            required 
+                                            autoFocus 
+                                        />
+                                        <datalist id="vendors-datalist">
+                                            {cachedAppData?.vendors.map(v => <option key={v} value={v} />)}
+                                        </datalist>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
+                                        Bill No <span className="text-rose-500">*</span>
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        value={billNo} 
+                                        onChange={e => setBillNo(e.target.value)} 
+                                        className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl py-2.5 px-3.5 text-sm font-bold font-mono text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-all" 
+                                        placeholder="INV-001" 
+                                        required 
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
+                                        Bill Date <span className="text-rose-500">*</span>
+                                    </label>
+                                    <input 
+                                        type="date" 
+                                        value={date} 
+                                        onChange={e => setDate(e.target.value)} 
+                                        className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl py-2.5 px-3.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-all" 
+                                        required 
+                                    />
+                                </div>
+
+                                <div className="sm:col-span-2">
+                                    <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
+                                        GSTIN (Optional)
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        value={gstNo} 
+                                        onChange={e => setGstNo(e.target.value)} 
+                                        className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl py-2 px-3.5 text-xs font-mono text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-all" 
+                                        placeholder="22AAAAA0000A1Z5" 
+                                    />
+                                </div>
                             </div>
                         </Card>
-                        <Card className="p-4 border-[var(--border-color)] bg-[var(--bg-card)]">
-                            <div className="flex items-center gap-2 mb-3 text-yellow-500 font-bold text-xs uppercase border-b border-[var(--border-color)] pb-2"><FileText size={14} /> Stock Reference</div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div><label className="block text-[10px] text-[var(--text-secondary)] font-bold uppercase mb-1">MRN No (Gate)</label><input type="text" value={mrnNo} onChange={e=>setMrnNo(e.target.value)} className="w-full h-9 px-3 rounded-md text-sm font-mono text-[var(--text-primary)]" placeholder="Auto / Manual" /></div>
-                                <div><label className="block text-[10px] text-green-500 font-bold uppercase mb-1">Stock Date <span className="text-red-500">*</span></label><input type="date" value={mrnDate} onChange={e=>setMrnDate(e.target.value)} className="w-full h-9 px-3 rounded-md text-sm text-[var(--text-primary)] border-green-900/50" required /></div>
-                                <div><label className="block text-[10px] text-[var(--text-secondary)] font-bold uppercase mb-1">GRN No</label><input type="text" value={grnNo} onChange={e=>setGrnNo(e.target.value)} className="w-full h-9 px-3 rounded-md text-sm text-[var(--text-primary)]" placeholder="Optional" /></div>
-                                <div><label className="block text-[10px] text-[var(--text-secondary)] font-bold uppercase mb-1">GRN Date</label><input type="date" value={grnDate} onChange={e=>setGrnDate(e.target.value)} className="w-full h-9 px-3 rounded-md text-sm text-[var(--text-primary)]" /></div>
+
+                        {/* 2. Stock Reference */}
+                        <Card 
+                            className="p-5" 
+                            headerIcon={<FileText size={18} />} 
+                            title="Stock Reference" 
+                            subtitle="Gate pass & store entry details"
+                        >
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
+                                        MRN No (Gate)
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        value={mrnNo} 
+                                        onChange={e => setMrnNo(e.target.value)} 
+                                        className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl py-2.5 px-3.5 text-sm font-mono text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-all" 
+                                        placeholder="Auto / Manual MRN" 
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-1.5">
+                                        Stock Date <span className="text-rose-500">*</span>
+                                    </label>
+                                    <input 
+                                        type="date" 
+                                        value={mrnDate} 
+                                        onChange={e => setMrnDate(e.target.value)} 
+                                        className="w-full bg-[var(--bg-main)] border border-emerald-500/40 rounded-xl py-2.5 px-3.5 text-sm text-[var(--text-primary)] focus:border-emerald-500 focus:outline-none transition-all" 
+                                        required 
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
+                                        GRN No
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        value={grnNo} 
+                                        onChange={e => setGrnNo(e.target.value)} 
+                                        className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl py-2.5 px-3.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-all" 
+                                        placeholder="Optional GRN" 
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
+                                        GRN Date
+                                    </label>
+                                    <input 
+                                        type="date" 
+                                        value={grnDate} 
+                                        onChange={e => setGrnDate(e.target.value)} 
+                                        className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl py-2.5 px-3.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-all" 
+                                    />
+                                </div>
                             </div>
                         </Card>
                     </div>
-                    <div className="flex-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] overflow-hidden flex flex-col relative shadow-xl">
-                        <div className="overflow-auto custom-scrollbar flex-1">
+
+                    {/* Inward Items Section */}
+                    <Card className="p-0 overflow-hidden">
+                        <div className="p-4 sm:p-5 border-b border-[var(--border-color)] bg-[var(--bg-main)]/50 flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5">
+                                <Package size={18} className="text-[var(--accent)]" />
+                                <h3 className="text-base font-bold text-[var(--text-primary)]">Bill Items</h3>
+                                <Badge variant="blue" size="sm">{purchaseItems.length} {purchaseItems.length === 1 ? 'Row' : 'Rows'}</Badge>
+                            </div>
+                            <Button 
+                                variant="secondary" 
+                                size="sm" 
+                                onClick={handleAddPurchaseRow}
+                                icon={<Plus size={14} />}
+                                className="cursor-pointer font-bold"
+                            >
+                                Add Row
+                            </Button>
+                        </div>
+
+                        {/* DESKTOP TABLE VIEW (md & above) */}
+                        <div className="hidden md:block overflow-x-auto">
                             <table className="w-full text-left text-sm text-[var(--text-secondary)]">
-                                <thead className="bg-[var(--bg-card)] text-[10px] uppercase font-bold sticky top-0 z-10 shadow-sm">
-                                    <tr><th className="p-3 w-10">#</th><th className="p-3 min-w-[200px]">Item Description</th><th className="p-3 w-20 text-center">Unit</th><th className="p-3 w-24 text-right">Qty</th><th className="p-3 w-28 text-right">Rate</th><th className="p-3 w-20 text-right">Disc%</th><th className="p-3 w-20 text-right">GST%</th><th className="p-3 w-32 text-right">Amount</th><th className="p-3 w-10"></th></tr>
+                                <thead className="bg-[var(--bg-main)]/80 text-[11px] uppercase font-bold tracking-wider text-[var(--text-secondary)] border-b border-[var(--border-color)]">
+                                    <tr>
+                                        <th className="py-3 px-4 w-12 text-center">#</th>
+                                        <th className="py-3 px-4 min-w-[260px]">Item Description</th>
+                                        <th className="py-3 px-4 w-24 text-center">Unit</th>
+                                        <th className="py-3 px-4 w-28 text-right">Qty</th>
+                                        <th className="py-3 px-4 w-32 text-right">Rate (₹)</th>
+                                        <th className="py-3 px-4 w-24 text-right">Disc %</th>
+                                        <th className="py-3 px-4 w-24 text-right">GST %</th>
+                                        <th className="py-3 px-4 w-36 text-right">Amount</th>
+                                        <th className="py-3 px-4 w-12 text-center"></th>
+                                    </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[var(--border-color)]">
                                     {purchaseItems.map((row, idx) => {
                                         const base = row.qty * row.rate;
                                         const disc = base * (row.discountPercent / 100);
-                                        const total = ((base - disc) * (1 + row.gstRate/100)).toFixed(2);
+                                        const total = ((base - disc) * (1 + row.gstRate / 100)).toFixed(2);
                                         return (
-                                            <tr key={row.tempId} className="hover:bg-[var(--bg-card-hover)] group">
-                                                <td className="p-3 text-center text-xs">{idx + 1}</td>
-                                                <td className="p-3">
+                                            <tr key={row.tempId} className="hover:bg-[var(--bg-card-hover)] transition-colors group">
+                                                <td className="py-3 px-4 text-center font-mono text-xs text-[var(--text-secondary)]">
+                                                    {idx + 1}
+                                                </td>
+                                                <td className="py-3 px-4 max-w-[320px]">
                                                     <div 
-                                                        className={`p-2 border rounded-lg cursor-pointer flex items-center justify-between transition-all ${!row.materialName ? 'bg-red-900/10 border-red-900/50 text-red-300' : 'bg-[var(--bg-main)] border-[var(--border-color)] text-[var(--text-primary)] font-medium'}`}
-                                                        onClick={() => { setActiveRowId(row.tempId); setPickerMode('PURCHASE'); setIsPickerOpen(true); }}
+                                                        className={`p-2.5 border rounded-xl cursor-pointer flex items-center justify-between transition-all min-w-0 ${
+                                                            !row.materialName 
+                                                                ? 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-400 hover:border-rose-500' 
+                                                                : 'bg-[var(--bg-main)] border-[var(--border-color)] text-[var(--text-primary)] hover:border-[var(--accent)] font-semibold'
+                                                        }`}
+                                                        onClick={() => handleOpenPicker(row.tempId, 'PURCHASE')}
                                                     >
-                                                        <div className="flex items-center gap-2 truncate">
-                                                            {row.materialName ? (row.isNew ? <Plus size={14} className="text-green-500" /> : <Check size={14} className="text-green-500" />) : <Search size={14} className="text-gray-500" />}
-                                                            <span className="truncate">{row.materialName || 'Click to select Item...'}</span>
+                                                        <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-2">
+                                                            {row.materialName ? (
+                                                                row.isNew ? <Badge variant="emerald" size="sm">NEW</Badge> : <Check size={14} className="text-emerald-500 shrink-0" />
+                                                            ) : (
+                                                                <Search size={14} className="text-[var(--text-secondary)] shrink-0" />
+                                                            )}
+                                                            <span className="truncate text-xs sm:text-sm">{row.materialName || 'Click to select Item...'}</span>
                                                         </div>
-                                                        <ChevronRight size={14} className="opacity-40" />
+                                                        <ChevronRight size={14} className="opacity-50 shrink-0" />
                                                     </div>
                                                 </td>
-                                                <td className="p-3 align-top"><input type="text" value={row.unit} onChange={e=>updatePurchaseRow(row.tempId, 'unit', e.target.value)} className="w-full bg-transparent text-center text-xs text-[var(--text-primary)]" placeholder="Unit"/></td>
-                                                <td className="p-3 align-top"><input type="number" step="any" value={row.qty || ''} onChange={e=>updatePurchaseRow(row.tempId, 'qty', parseFloat(e.target.value) || 0)} className="w-full bg-transparent text-right font-bold focus:border-[var(--accent)]" /></td>
-                                                <td className="p-3 align-top"><input type="number" step="any" value={row.rate || ''} onChange={e=>updatePurchaseRow(row.tempId, 'rate', parseFloat(e.target.value) || 0)} className="w-full bg-transparent text-right font-mono" /></td>
-                                                <td className="p-3 align-top"><input type="number" step="any" value={row.discountPercent || ''} onChange={e=>updatePurchaseRow(row.tempId, 'discountPercent', parseFloat(e.target.value) || 0)} className="w-full bg-transparent text-right text-xs" /></td>
-                                                <td className="p-3 align-top"><input type="number" step="any" value={row.gstRate || ''} onChange={e=>updatePurchaseRow(row.tempId, 'gstRate', parseFloat(e.target.value) || 0)} className="w-full bg-transparent text-center text-xs" /></td>
-                                                <td className="p-3 text-right font-mono font-bold text-green-400">{total}</td>
-                                                <td className="p-3 text-center"><button type="button" onClick={()=>setPurchaseItems(prev=>prev.filter(r=>r.tempId!==row.tempId))} className="text-gray-600 hover:text-red-500"><Trash2 size={16}/></button></td>
+                                                <td className="py-3 px-4 align-middle">
+                                                    <input 
+                                                        type="text" 
+                                                        value={row.unit} 
+                                                        onChange={e => updatePurchaseRow(row.tempId, 'unit', e.target.value)} 
+                                                        className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-lg text-center text-xs text-[var(--text-primary)] font-medium py-1.5 focus:border-[var(--accent)] focus:outline-none" 
+                                                        placeholder="Nos"
+                                                    />
+                                                </td>
+                                                <td className="py-3 px-4 align-middle">
+                                                    <input 
+                                                        type="number" 
+                                                        step="any" 
+                                                        value={row.qty || ''} 
+                                                        onChange={e => updatePurchaseRow(row.tempId, 'qty', parseFloat(e.target.value) || 0)} 
+                                                        className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-lg text-right font-bold text-sm text-[var(--text-primary)] py-1.5 px-2 focus:border-[var(--accent)] focus:outline-none font-mono" 
+                                                        placeholder="0"
+                                                    />
+                                                </td>
+                                                <td className="py-3 px-4 align-middle">
+                                                    <input 
+                                                        type="number" 
+                                                        step="any" 
+                                                        value={row.rate || ''} 
+                                                        onChange={e => updatePurchaseRow(row.tempId, 'rate', parseFloat(e.target.value) || 0)} 
+                                                        className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-lg text-right font-mono text-sm text-[var(--text-primary)] py-1.5 px-2 focus:border-[var(--accent)] focus:outline-none" 
+                                                        placeholder="0.00"
+                                                    />
+                                                </td>
+                                                <td className="py-3 px-4 align-middle">
+                                                    <input 
+                                                        type="number" 
+                                                        step="any" 
+                                                        value={row.discountPercent || ''} 
+                                                        onChange={e => updatePurchaseRow(row.tempId, 'discountPercent', parseFloat(e.target.value) || 0)} 
+                                                        className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-lg text-right text-xs text-[var(--text-primary)] py-1.5 px-2 focus:border-[var(--accent)] focus:outline-none" 
+                                                        placeholder="0%"
+                                                    />
+                                                </td>
+                                                <td className="py-3 px-4 align-middle">
+                                                    <input 
+                                                        type="number" 
+                                                        step="any" 
+                                                        value={row.gstRate || ''} 
+                                                        onChange={e => updatePurchaseRow(row.tempId, 'gstRate', parseFloat(e.target.value) || 0)} 
+                                                        className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-lg text-center text-xs text-[var(--text-primary)] py-1.5 px-2 focus:border-[var(--accent)] focus:outline-none" 
+                                                        placeholder="18%"
+                                                    />
+                                                </td>
+                                                <td className="py-3 px-4 text-right font-mono font-bold text-emerald-700 dark:text-emerald-400 text-sm">
+                                                    {appSettings.currencySymbol} {parseFloat(total).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                </td>
+                                                <td className="py-3 px-4 text-center">
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => handleRemovePurchaseRow(row.tempId)} 
+                                                        className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                                        title="Delete row"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </td>
                                             </tr>
-                                        )
+                                        );
                                     })}
                                 </tbody>
                             </table>
-                            <button type="button" onClick={()=>setPurchaseItems([...purchaseItems, {tempId: Date.now().toString(), materialId: '', materialName: '', isNew: false, group: '', department: '', location: '', unit: '', hsn: '', description: '', qty: 0, rate: 0, discountPercent: 0, gstRate: appSettings.defaultGstRate || 18}])} className="p-3 text-xs flex items-center gap-2 text-[var(--accent)] hover:text-white transition-colors font-bold"><Plus size={14}/> Add Row</button>
                         </div>
-                    </div>
-                    <div className="absolute bottom-4 right-4 flex flex-col items-end gap-2 z-20">
-                        <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl p-4 w-72 backdrop-blur-md">
-                            <div className="flex justify-between items-center mb-2 text-xs"><span className="text-[var(--text-secondary)] font-bold">Total Freight</span><input type="number" value={billFreight || ''} onChange={e=>setBillFreight(parseFloat(e.target.value) || 0)} className="w-24 bg-[var(--bg-main)] border border-yellow-700/50 rounded p-1 text-yellow-400 font-bold text-right" placeholder="0.00" /></div>
-                            <div className="h-px bg-[var(--border-color)] my-2"></div>
-                            <div className="flex justify-between items-end"><div><div className="text-[10px] text-[var(--text-secondary)] uppercase font-bold">Grand Total</div><div className="text-xs text-[var(--text-secondary)]">{purchaseItems.length} Items</div></div><div className="text-2xl font-bold text-green-400 font-mono">{appSettings.currencySymbol} {purchaseGrandTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</div></div>
-                            <Button type="submit" variant="success" className="w-full mt-3 h-10 font-bold" disabled={isSubmitting}>{isSubmitting ? <Loader2 size={18} className="animate-spin mx-auto" /> : (editMode ? 'Update Bill' : 'Save Bill')}</Button>
+
+                        {/* MOBILE CARD VIEW (under md) */}
+                        <div className="block md:hidden p-4 space-y-4">
+                            {purchaseItems.map((row, idx) => {
+                                const base = row.qty * row.rate;
+                                const disc = base * (row.discountPercent / 100);
+                                const total = ((base - disc) * (1 + row.gstRate / 100)).toFixed(2);
+                                return (
+                                    <div key={row.tempId} className="p-4 rounded-2xl bg-[var(--bg-main)]/60 border border-[var(--border-color)] space-y-3">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="text-xs font-mono font-bold text-[var(--text-secondary)]">#{idx + 1}</span>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => handleRemovePurchaseRow(row.tempId)}
+                                                className="text-rose-500 hover:text-rose-700 p-1 rounded-lg"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+
+                                        {/* Item Select Pill */}
+                                        <div 
+                                            className={`p-3 border rounded-xl cursor-pointer flex items-center justify-between transition-all ${
+                                                !row.materialName 
+                                                    ? 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-400' 
+                                                    : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] font-semibold'
+                                            }`}
+                                            onClick={() => handleOpenPicker(row.tempId, 'PURCHASE')}
+                                        >
+                                            <div className="flex items-center gap-2 truncate">
+                                                {row.materialName ? <Check size={14} className="text-emerald-500" /> : <Search size={14} className="text-[var(--text-secondary)]" />}
+                                                <span className="text-sm truncate">{row.materialName || 'Click to select Item...'}</span>
+                                            </div>
+                                            <ChevronRight size={14} className="opacity-50" />
+                                        </div>
+
+                                        {/* Input Grid: Qty, Unit, Rate, GST */}
+                                        <div className="grid grid-cols-2 gap-3 pt-1">
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase mb-1">Qty</label>
+                                                <input 
+                                                    type="number" 
+                                                    step="any" 
+                                                    value={row.qty || ''} 
+                                                    onChange={e => updatePurchaseRow(row.tempId, 'qty', parseFloat(e.target.value) || 0)} 
+                                                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl py-2 px-3 text-sm font-bold font-mono text-[var(--text-primary)]" 
+                                                    placeholder="0"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase mb-1">Unit</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={row.unit} 
+                                                    onChange={e => updatePurchaseRow(row.tempId, 'unit', e.target.value)} 
+                                                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl py-2 px-3 text-sm text-center text-[var(--text-primary)]" 
+                                                    placeholder="Nos"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase mb-1">Rate (₹)</label>
+                                                <input 
+                                                    type="number" 
+                                                    step="any" 
+                                                    value={row.rate || ''} 
+                                                    onChange={e => updatePurchaseRow(row.tempId, 'rate', parseFloat(e.target.value) || 0)} 
+                                                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl py-2 px-3 text-sm font-mono text-[var(--text-primary)]" 
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase mb-1">GST %</label>
+                                                <input 
+                                                    type="number" 
+                                                    step="any" 
+                                                    value={row.gstRate || ''} 
+                                                    onChange={e => updatePurchaseRow(row.tempId, 'gstRate', parseFloat(e.target.value) || 0)} 
+                                                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl py-2 px-3 text-sm text-center text-[var(--text-primary)]" 
+                                                    placeholder="18"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Subtotal row */}
+                                        <div className="flex items-center justify-between pt-2 border-t border-[var(--border-color)]">
+                                            <span className="text-xs text-[var(--text-secondary)] font-semibold">Row Total</span>
+                                            <span className="font-mono font-bold text-sm text-emerald-700 dark:text-emerald-400">
+                                                {appSettings.currencySymbol} {parseFloat(total).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+
+                            <Button 
+                                variant="secondary" 
+                                size="md" 
+                                onClick={handleAddPurchaseRow} 
+                                icon={<Plus size={16} />} 
+                                className="w-full font-bold cursor-pointer"
+                            >
+                                Add Another Item
+                            </Button>
+                        </div>
+                    </Card>
+
+                    {/* Integrated Bottom Summary Checkout Card (No clumsy absolute overlap!) */}
+                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-5">
+                        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+                            <div>
+                                <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-1">
+                                    Total Freight ({appSettings.currencySymbol})
+                                </label>
+                                <input 
+                                    type="number" 
+                                    value={billFreight || ''} 
+                                    onChange={e => setBillFreight(parseFloat(e.target.value) || 0)} 
+                                    className="w-36 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl py-2 px-3 text-sm font-bold font-mono text-[var(--text-primary)] text-right focus:border-[var(--accent)] focus:outline-none" 
+                                    placeholder="0.00" 
+                                />
+                            </div>
+                            <div className="text-xs text-[var(--text-secondary)] pl-2 border-l border-[var(--border-color)]">
+                                <span className="font-bold text-[var(--text-primary)]">{purchaseItems.filter(i => i.qty > 0).length}</span> active items
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row items-center gap-5 w-full md:w-auto justify-end">
+                            <div className="text-right">
+                                <div className="text-[10px] text-[var(--text-secondary)] uppercase font-bold tracking-wider">Grand Total (Inc. GST & Freight)</div>
+                                <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
+                                    {appSettings.currencySymbol} {purchaseGrandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                </div>
+                            </div>
+                            <Button 
+                                type="submit" 
+                                variant="success" 
+                                size="lg" 
+                                className="w-full sm:w-auto px-8 font-extrabold tracking-wide cursor-pointer shadow-lg shadow-emerald-500/20" 
+                                loading={isSubmitting}
+                            >
+                                <Save size={18} />
+                                {editMode ? 'Update Bill' : cloneMode ? 'Clone & Save' : 'Save Bill'}
+                            </Button>
                         </div>
                     </div>
                 </form>
-             </div>
-        );
-    }
+            ) : (
+                /* ================= ISSUE FORM ================= */
+                <form onSubmit={submitIssue} className="space-y-6">
+                    {/* Target Department & Receiver Card */}
+                    <Card 
+                        className="p-5" 
+                        headerIcon={<Building size={18} />} 
+                        title="Department & Issuance Target" 
+                        subtitle="Destination center and receiver verification"
+                    >
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label className="text-xs text-[var(--text-secondary)] uppercase font-bold mb-1.5 block">
+                                    Issue Date <span className="text-rose-500">*</span>
+                                </label>
+                                <div className="relative">
+                                    <input 
+                                        type="date" 
+                                        value={date} 
+                                        onChange={e => setDate(e.target.value)} 
+                                        className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl py-2.5 px-3.5 text-sm text-[var(--text-primary)] focus:border-rose-500 focus:outline-none transition-all" 
+                                        required 
+                                    />
+                                </div>
+                            </div>
 
-    return (
-        <div className="space-y-6 pb-20 h-full flex flex-col animate-fadeIn">
-            <div className="flex justify-between items-center shrink-0">
-                <div><h2 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-2"><ShoppingCart size={24} className="text-red-500"/> Issue Material</h2><p className="text-xs text-[var(--text-secondary)]">Multi-Item Issue Cart with Auto-FIFO</p></div>
-                <Button variant="secondary" onClick={onCancel || onComplete} className="text-sm">Cancel</Button>
-            </div>
-            
-            <form onSubmit={submitIssue} className="flex-1 flex flex-col gap-4 overflow-hidden">
-                <Card className="p-4 bg-[var(--bg-card)] border-[var(--border-color)] shrink-0">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div><label className="text-xs text-[var(--text-secondary)] uppercase font-bold mb-1 block">Issue Date <span className="text-red-500">*</span></label><div className="relative"><Calendar className="absolute left-2.5 top-2.5 text-gray-400" size={14}/><input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded p-2 pl-9 text-[var(--text-primary)] focus:border-red-500" required /></div></div>
-                        <div><label className="text-xs text-[var(--text-secondary)] uppercase font-bold mb-1 block">Target Department <span className="text-red-500">*</span></label><select value={issueDept} onChange={e => setIssueDept(e.target.value)} className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded p-2 text-[var(--text-primary)] focus:border-red-500" required><option value="">-- Select Department --</option>{uniqueDepartments.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
-                        <div>
-                            <label className="text-xs text-[var(--text-secondary)] uppercase font-bold mb-1 block">Receiver / Machine</label>
-                            <input 
-                                type="text" 
-                                list="receivers-list"
-                                value={issueReceiver} 
-                                onChange={e => setIssueReceiver(e.target.value)} 
-                                placeholder="e.g. John Doe / CNC-01" 
-                                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded p-2 text-[var(--text-primary)]" 
-                            />
-                            <datalist id="receivers-list">
-                                {historicalReceivers.map(name => (
-                                    <option key={name} value={name} />
-                                ))}
-                            </datalist>
+                            <div>
+                                <label className="text-xs text-[var(--text-secondary)] uppercase font-bold mb-1.5 block">
+                                    Target Department <span className="text-rose-500">*</span>
+                                </label>
+                                <select 
+                                    value={issueDept} 
+                                    onChange={e => setIssueDept(e.target.value)} 
+                                    className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl py-2.5 px-3.5 text-sm text-[var(--text-primary)] focus:border-rose-500 focus:outline-none transition-all cursor-pointer font-medium" 
+                                    required
+                                >
+                                    <option value="">-- Select Department --</option>
+                                    {uniqueDepartments.map(d => <option key={d} value={d}>{d}</option>)}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-[var(--text-secondary)] uppercase font-bold mb-1.5 block">
+                                    Receiver / Machine Reference
+                                </label>
+                                <input 
+                                    type="text" 
+                                    list="issue-receivers-list"
+                                    value={issueReceiver} 
+                                    onChange={e => setIssueReceiver(e.target.value)} 
+                                    placeholder="e.g. Mechanical Shop / CNC-02" 
+                                    className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl py-2.5 px-3.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-all" 
+                                />
+                                <datalist id="issue-receivers-list">
+                                    {historicalReceivers.map(name => (
+                                        <option key={name} value={name} />
+                                    ))}
+                                </datalist>
+                            </div>
                         </div>
-                    </div>
-                </Card>
+                    </Card>
 
-                <div className="flex-1 overflow-x-auto rounded-xl border border-[var(--border-color)] bg-[var(--bg-card)] shadow-xl relative flex flex-col">
-                    <div className="overflow-auto custom-scrollbar flex-1">
-                        <table className="w-full text-left text-sm text-[var(--text-secondary)]">
-                            <thead className="bg-[var(--bg-main)] text-xs uppercase font-bold text-gray-500 sticky top-0 z-10"><tr><th className="p-3 min-w-[200px]">Material Name (Search to Open Picker)</th><th className="p-3 w-28 text-right">Available Stock</th><th className="p-3 w-28 text-right">Issue Qty</th><th className="p-3 w-32 text-right">Value</th><th className="p-3 w-48">Remarks</th><th className="p-3 w-10"></th></tr></thead>
-                            <tbody className="divide-y divide-[var(--border-color)]">
-                                {issueItems.map((row, idx) => (
-                                    <tr key={row.tempId} className="hover:bg-[var(--bg-card-hover)] group">
-                                        <td className="p-3">
-                                            <div 
-                                                className={`p-2 border rounded-lg cursor-pointer flex items-center justify-between transition-all ${!row.materialId ? 'bg-red-900/10 border-red-900/50 text-red-300' : 'bg-[var(--bg-main)] border-[var(--border-color)] text-[var(--text-primary)] font-medium'}`}
-                                                onClick={() => { setActiveRowId(row.tempId); setPickerMode('ISSUE'); setIsPickerOpen(true); }}
-                                            >
-                                                <div className="flex items-center gap-2 truncate">
-                                                    {row.materialId ? <Check size={14} className="text-green-500" /> : <Search size={14} className="text-gray-500" />}
-                                                    <span className="truncate">{row.materialName || 'Click to select Item...'}</span>
+                    {/* Issue Items Card */}
+                    <Card className="p-0 overflow-hidden">
+                        <div className="p-4 sm:p-5 border-b border-[var(--border-color)] bg-[var(--bg-main)]/50 flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5">
+                                <ShoppingCart size={18} className="text-rose-500" />
+                                <h3 className="text-base font-bold text-[var(--text-primary)]">Issue Cart</h3>
+                                <Badge variant="rose" size="sm">{issueItems.length} {issueItems.length === 1 ? 'Item' : 'Items'}</Badge>
+                            </div>
+                            <Button 
+                                variant="secondary" 
+                                size="sm" 
+                                onClick={handleAddIssueRow} 
+                                icon={<Plus size={14} />} 
+                                className="cursor-pointer font-bold"
+                            >
+                                Add Another Item
+                            </Button>
+                        </div>
+
+                        {/* DESKTOP ISSUE TABLE */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="w-full text-left text-sm text-[var(--text-secondary)]">
+                                <thead className="bg-[var(--bg-main)]/80 text-[11px] uppercase font-bold tracking-wider text-[var(--text-secondary)] border-b border-[var(--border-color)]">
+                                    <tr>
+                                        <th className="py-3 px-4 min-w-[280px]">Material Name</th>
+                                        <th className="py-3 px-4 w-32 text-right">Available Stock</th>
+                                        <th className="py-3 px-4 w-32 text-right">Issue Qty</th>
+                                        <th className="py-3 px-4 w-36 text-right">FIFO Valuation</th>
+                                        <th className="py-3 px-4 min-w-[200px]">Remarks / Note</th>
+                                        <th className="py-3 px-4 w-12 text-center"></th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[var(--border-color)]">
+                                    {issueItems.map(row => (
+                                        <tr key={row.tempId} className="hover:bg-[var(--bg-card-hover)] transition-colors group">
+                                            <td className="py-3 px-4">
+                                                <div 
+                                                    className={`p-2.5 border rounded-xl cursor-pointer flex items-center justify-between transition-all ${
+                                                        !row.materialId 
+                                                            ? 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-400 hover:border-rose-500' 
+                                                            : 'bg-[var(--bg-main)] border-[var(--border-color)] text-[var(--text-primary)] hover:border-[var(--accent)] font-semibold'
+                                                    }`}
+                                                    onClick={() => handleOpenPicker(row.tempId, 'ISSUE')}
+                                                >
+                                                    <div className="flex items-center gap-2.5 truncate">
+                                                        {row.materialId ? <Check size={14} className="text-emerald-500" /> : <Search size={14} className="text-[var(--text-secondary)]" />}
+                                                        <span className="truncate">{row.materialName || 'Click to select Item...'}</span>
+                                                    </div>
+                                                    <ChevronRight size={14} className="opacity-50 shrink-0" />
                                                 </div>
-                                                <ChevronRight size={14} className="opacity-40" />
+                                            </td>
+                                            <td className="py-3 px-4 text-right">
+                                                <div className={`font-mono font-bold text-base ${row.materialId ? (row.currentStock > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500') : 'text-[var(--text-secondary)]'}`}>
+                                                    {row.materialId ? row.currentStock : '--'}
+                                                </div>
+                                                {row.materialId && <div className="text-[10px] text-[var(--text-secondary)] font-semibold uppercase">{row.unit}</div>}
+                                            </td>
+                                            <td className="py-3 px-4 text-right">
+                                                <input 
+                                                    type="number" 
+                                                    placeholder="0" 
+                                                    value={row.qty || ''} 
+                                                    onFocus={e => e.target.select()}
+                                                    onChange={e => updateIssueQty(row.tempId, parseFloat(e.target.value) || 0)} 
+                                                    className={`w-28 bg-[var(--bg-main)] border rounded-xl p-2 text-right font-bold text-[var(--text-primary)] text-base font-mono focus:ring-2 focus:ring-[var(--accent)] focus:outline-none ${
+                                                        row.qty > row.currentStock && !appSettings.enableNegativeStock 
+                                                            ? 'border-rose-500 text-rose-500' 
+                                                            : 'border-[var(--border-color)]'
+                                                    }`} 
+                                                />
+                                            </td>
+                                            <td className="py-3 px-4 text-right font-mono font-bold text-[var(--text-primary)]">
+                                                <div className="text-sm">{appSettings.currencySymbol} {row.valuation.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                                                {row.qty > 0 && <div className="text-[10px] text-[var(--text-secondary)] font-normal">@ {(row.valuation / row.qty).toFixed(2)} / {row.unit}</div>}
+                                            </td>
+                                            <td className="py-3 px-4">
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Project or batch note..." 
+                                                    value={row.remarks} 
+                                                    onChange={e => updateIssueRemark(row.tempId, e.target.value)} 
+                                                    className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl py-1.5 px-3 text-xs text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none" 
+                                                />
+                                            </td>
+                                            <td className="py-3 px-4 text-center">
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => handleRemoveIssueRow(row.tempId)} 
+                                                    className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* MOBILE ISSUE CARD VIEW */}
+                        <div className="block md:hidden p-4 space-y-4">
+                            {issueItems.map((row, idx) => (
+                                <div key={row.tempId} className="p-4 rounded-2xl bg-[var(--bg-main)]/60 border border-[var(--border-color)] space-y-3">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="text-xs font-mono font-bold text-[var(--text-secondary)]">Item #{idx + 1}</span>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => handleRemoveIssueRow(row.tempId)}
+                                            className="text-rose-500 hover:text-rose-700 p-1 rounded-lg"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+
+                                    {/* Material select button */}
+                                    <div 
+                                        className={`p-3 border rounded-xl cursor-pointer flex items-center justify-between transition-all ${
+                                            !row.materialId 
+                                                ? 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-400' 
+                                                : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-primary)] font-semibold'
+                                        }`}
+                                        onClick={() => handleOpenPicker(row.tempId, 'ISSUE')}
+                                    >
+                                        <div className="flex items-center gap-2 truncate">
+                                            {row.materialId ? <Check size={14} className="text-emerald-500" /> : <Search size={14} className="text-[var(--text-secondary)]" />}
+                                            <span className="text-sm truncate">{row.materialName || 'Click to select Item...'}</span>
+                                        </div>
+                                        <ChevronRight size={14} className="opacity-50" />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3 pt-1">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase mb-1">Available</label>
+                                            <div className="p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">
+                                                {row.materialId ? `${row.currentStock} ${row.unit}` : '--'}
                                             </div>
-                                        </td>
-                                        <td className="p-3 text-right">
-                                            <div className={`font-mono font-bold text-lg ${row.materialId ? 'text-green-400' : 'text-gray-700'}`}>{row.materialId ? row.currentStock : '--'}</div>
-                                            {row.materialId && <div className="text-[10px] text-gray-600 uppercase">{row.unit}</div>}
-                                        </td>
-                                        <td className="p-3 text-right">
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase mb-1">Issue Qty</label>
                                             <input 
                                                 type="number" 
                                                 placeholder="0" 
                                                 value={row.qty || ''} 
-                                                onFocus={(e) => e.target.select()}
+                                                onFocus={e => e.target.select()}
                                                 onChange={e => updateIssueQty(row.tempId, parseFloat(e.target.value) || 0)} 
-                                                className={`w-24 bg-[var(--bg-main)] border rounded-lg p-2 text-right font-bold text-[var(--text-primary)] text-lg focus:ring-2 focus:ring-[var(--accent)] ${row.qty > row.currentStock && !appSettings.enableNegativeStock ? 'border-red-500' : 'border-gray-600'}`} 
+                                                className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl py-2 px-3 text-sm font-bold font-mono text-[var(--text-primary)]" 
                                             />
-                                        </td>
-                                        <td className="p-3 text-right font-mono font-bold text-[var(--text-primary)]">
-                                            <div>{appSettings.currencySymbol} {row.valuation.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
-                                            {row.qty > 0 && <div className="text-[10px] text-gray-500 font-normal">@ {(row.valuation/row.qty).toFixed(2)}</div>}
-                                        </td>
-                                        <td className="p-3"><input type="text" placeholder="Add remark..." value={row.remarks} onChange={e => updateIssueRemark(row.tempId, e.target.value)} className="w-full bg-transparent border-b border-gray-700 focus:border-gray-400 outline-none text-xs text-[var(--text-primary)] py-1" /></td>
-                                        <td className="p-3 text-center"><button type="button" onClick={() => handleRemoveIssueRow(row.tempId)} className="text-gray-600 hover:text-red-500"><Trash2 size={16}/></button></td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        <div className="p-3 border-t border-[var(--border-color)] bg-[var(--bg-main)]/30 flex justify-between items-center backdrop-blur-sm sticky bottom-0">
-                            <button type="button" onClick={handleAddIssueRow} className="text-xs flex items-center gap-2 text-blue-400 hover:text-white font-bold"><Plus size={14}/> Add Another Item</button>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase mb-1">Remarks</label>
+                                        <input 
+                                            type="text" 
+                                            placeholder="Note / Reference..." 
+                                            value={row.remarks} 
+                                            onChange={e => updateIssueRemark(row.tempId, e.target.value)} 
+                                            className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl py-2 px-3 text-xs text-[var(--text-primary)]" 
+                                        />
+                                    </div>
+
+                                    <div className="flex items-center justify-between pt-2 border-t border-[var(--border-color)]">
+                                        <span className="text-xs text-[var(--text-secondary)] font-semibold">FIFO Valuation</span>
+                                        <span className="font-mono font-bold text-sm text-[var(--text-primary)]">
+                                            {appSettings.currencySymbol} {row.valuation.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+
+                            <Button 
+                                variant="secondary" 
+                                size="md" 
+                                onClick={handleAddIssueRow} 
+                                icon={<Plus size={16} />} 
+                                className="w-full font-bold cursor-pointer"
+                            >
+                                Add Another Item
+                            </Button>
+                        </div>
+                    </Card>
+
+                    {/* Integrated Bottom Summary Checkout Card for Issue */}
+                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-5">
+                        <div className="text-xs text-[var(--text-secondary)]">
+                            Auto-FIFO picks earliest batches first based on actual purchase receipt dates.
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row items-center gap-5 w-full md:w-auto justify-end">
+                            <div className="text-right">
+                                <div className="text-[10px] text-[var(--text-secondary)] uppercase font-bold tracking-wider">Total Issue Valuation</div>
+                                <div className="text-2xl sm:text-3xl font-extrabold text-rose-500 font-mono">
+                                    {appSettings.currencySymbol} {issueGrandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                </div>
+                            </div>
+                            <Button 
+                                type="submit" 
+                                variant="danger" 
+                                size="lg" 
+                                className="w-full sm:w-auto px-8 font-extrabold tracking-wide cursor-pointer shadow-lg shadow-rose-500/20" 
+                                loading={isSubmitting}
+                            >
+                                <ShoppingCart size={18} /> Process Issue
+                            </Button>
                         </div>
                     </div>
-                </div>
+                </form>
+            )}
 
-                <div className="flex justify-end shrink-0">
-                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-3 px-5 flex items-center gap-6 shadow-xl">
-                        <div className="text-right">
-                            <div className="text-[10px] text-[var(--text-secondary)] uppercase font-bold">Total Issue Value</div>
-                            <div className="text-xl font-bold text-red-400 font-mono">{appSettings.currencySymbol} {issueGrandTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</div>
-                        </div>
-                        <Button type="submit" variant="danger" className="px-6 py-2 font-bold flex items-center gap-2" disabled={isSubmitting}>
-                            {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <><ShoppingCart size={18}/> Process Issue</>}
-                        </Button>
-                    </div>
-                </div>
-            </form>
-
+            {/* ================= UNIVERSAL ITEM PICKER MODAL ================= */}
+            {/* Rendered at top level so it works for BOTH Purchase and Issue */}
             {isPickerOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 bg-black/90 backdrop-blur-md animate-fadeIn">
-                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] w-full max-w-4xl h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-                        <div className="p-5 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--bg-main)]">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 md:p-10 bg-black/80 backdrop-blur-xl animate-fadeIn">
+                    <div className="bg-[var(--bg-card)] border border-[var(--border-color)] w-full max-w-4xl h-[90vh] max-h-[800px] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-scaleUp">
+                        
+                        {/* Modal Header */}
+                        <div className="p-4 sm:p-5 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--bg-main)]/70">
                             <div>
-                                <h3 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2"><Box size={20} className="text-[var(--accent)]"/> Select Material</h3>
-                                <p className="text-xs text-[var(--text-secondary)] mt-1">
-                                    {pickerMode === 'ISSUE' ? "Only showing items with available physical stock." : "Search all items or create new."}
+                                <h3 className="text-lg sm:text-xl font-bold text-[var(--text-primary)] flex items-center gap-2">
+                                    <Box size={20} className="text-[var(--accent)]"/> Select Material
+                                </h3>
+                                <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                                    {pickerMode === 'ISSUE' ? "Showing items with positive available stock." : "Select existing item or create new."}
                                 </p>
                             </div>
-                            <button onClick={() => setIsPickerOpen(false)} className="p-2 hover:bg-[var(--bg-card-hover)] rounded-full text-[var(--text-secondary)] transition-colors"><X size={24}/></button>
+                            <button 
+                                type="button"
+                                onClick={() => setIsPickerOpen(false)} 
+                                className="p-2 hover:bg-[var(--bg-card-hover)] rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                            >
+                                <X size={20}/>
+                            </button>
                         </div>
-                        <div className="p-4 bg-[var(--bg-main)] border-b border-[var(--border-color)]">
+
+                        {/* Search & Category Chips */}
+                        <div className="p-4 bg-[var(--bg-main)]/50 border-b border-[var(--border-color)] space-y-3">
                             <div className="relative group">
-                                <Search size={20} className="absolute left-4 top-3.5 text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] transition-colors"/>
+                                <Search size={18} className="absolute left-4 top-3.5 text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] transition-colors"/>
                                 <input 
                                     autoFocus
-                                    placeholder="Search by Name, Group, Department or Location..."
-                                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl py-3.5 pl-12 pr-4 text-[var(--text-primary)] text-lg focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] shadow-inner transition-all"
+                                    placeholder="Search by name, group, department, HSN, location..."
+                                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl py-3 pl-11 pr-10 text-[var(--text-primary)] text-sm sm:text-base focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] shadow-inner transition-all"
                                     value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onChange={e => setSearchTerm(e.target.value)}
                                 />
+                                {searchTerm && (
+                                    <button 
+                                        type="button"
+                                        onClick={() => setSearchTerm('')} 
+                                        className="absolute right-3.5 top-3 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Group Filter Chips */}
+                            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+                                {uniqueGroups.slice(0, 8).map(group => (
+                                    <button
+                                        key={group}
+                                        type="button"
+                                        onClick={() => setSelectedGroupFilter(group)}
+                                        className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                                            selectedGroupFilter === group
+                                                ? 'bg-[var(--accent)] text-white shadow-sm'
+                                                : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-color)] hover:border-[var(--accent)]/50'
+                                        }`}
+                                    >
+                                        {group}
+                                    </button>
+                                ))}
                             </div>
                         </div>
+
+                        {/* Items Grid List */}
                         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 bg-[var(--bg-main)]">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-10">
-                                {pickerMode === 'PURCHASE' && searchTerm.length > 1 && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-8">
+                                
+                                {/* Create New Item Card (Purchase Mode Only) */}
+                                {pickerMode === 'PURCHASE' && searchTerm.trim().length > 1 && (
                                     <div 
                                         onClick={handleCreateNewFromPicker}
-                                        className="col-span-full bg-green-900/10 border border-green-800/50 p-4 rounded-xl cursor-pointer hover:bg-green-900/20 hover:border-green-500 transition-all flex items-center gap-3 group"
+                                        className="col-span-full bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-2xl cursor-pointer hover:bg-emerald-500/20 hover:border-emerald-500 transition-all flex items-center gap-3.5 group shadow-sm"
                                     >
-                                        <div className="w-10 h-10 rounded-full bg-green-900/50 flex items-center justify-center text-green-400 group-hover:scale-110 transition-transform"><Plus size={20}/></div>
-                                        <div>
-                                            <h4 className="font-bold text-green-400">Create New Item: "{searchTerm}"</h4>
-                                            <p className="text-xs text-green-500/70">Item will be added to Master Data automatically.</p>
+                                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                                            <Plus size={22}/>
+                                        </div>
+                                        <div className="min-w-0">
+                                            <h4 className="font-bold text-sm text-emerald-700 dark:text-emerald-400 truncate">
+                                                Create New Item: "{searchTerm.trim()}"
+                                            </h4>
+                                            <p className="text-xs text-emerald-600/80 dark:text-emerald-400/70">
+                                                Click to create & add directly to this bill and Master Catalog.
+                                            </p>
                                         </div>
                                     </div>
                                 )}
+
                                 {filteredMaterialsForPicker.map(m => (
                                     <div 
                                         key={m.id} 
                                         onClick={() => pickerMode === 'ISSUE' ? handleIssueMatSelect(m) : handlePurchaseMatSelect(m)}
-                                        className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-xl cursor-pointer hover:border-[var(--accent)] hover:bg-[var(--bg-card-hover)] transition-all flex justify-between items-center group"
+                                        className="bg-[var(--bg-card)] border border-[var(--border-color)] p-4 rounded-2xl cursor-pointer hover:border-[var(--accent)] hover:bg-[var(--bg-card-hover)] transition-all flex justify-between items-center group shadow-sm"
                                     >
-                                        <div className="overflow-hidden mr-4">
-                                            <h4 className="font-bold text-[var(--text-primary)] group-hover:text-[var(--accent)] truncate">{m.name}</h4>
-                                            <div className="flex flex-wrap gap-2 mt-2">
-                                                <span className="text-[9px] bg-[var(--bg-main)] px-1.5 py-0.5 rounded border border-[var(--border-color)] text-[var(--text-secondary)] uppercase tracking-wider">{m.group}</span>
-                                                <span className="text-[9px] bg-[var(--bg-main)] px-1.5 py-0.5 rounded border border-[var(--border-color)] text-[var(--text-secondary)] uppercase tracking-wider">{m.department}</span>
+                                        <div className="min-w-0 mr-3">
+                                            <h4 className="font-bold text-sm text-[var(--text-primary)] group-hover:text-[var(--accent)] truncate">
+                                                {m.name}
+                                            </h4>
+                                            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                                {m.group && (
+                                                    <span className="text-[10px] bg-[var(--bg-main)] px-2 py-0.5 rounded-md border border-[var(--border-color)] text-[var(--text-secondary)] font-medium uppercase">
+                                                        {m.group}
+                                                    </span>
+                                                )}
+                                                {m.location && (
+                                                    <span className="text-[10px] bg-[var(--bg-main)] px-2 py-0.5 rounded-md border border-[var(--border-color)] text-[var(--text-secondary)] font-mono">
+                                                        📍 {m.location}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="text-right shrink-0">
-                                            <div className="text-2xl font-mono font-bold text-green-500">{m.currentStock}</div>
-                                            <div className="text-[10px] text-[var(--text-secondary)] font-bold uppercase">{m.unit}</div>
+                                            <div className={`text-xl font-mono font-bold ${
+                                                m.currentStock > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-[var(--text-secondary)]'
+                                            }`}>
+                                                {m.currentStock}
+                                            </div>
+                                            <div className="text-[10px] text-[var(--text-secondary)] font-semibold uppercase">{m.unit}</div>
                                         </div>
                                     </div>
                                 ))}
+
+                                {filteredMaterialsForPicker.length === 0 && searchTerm.trim().length <= 1 && (
+                                    <div className="col-span-full py-16 text-center text-[var(--text-secondary)]">
+                                        <Box size={36} className="mx-auto mb-2 opacity-40" />
+                                        <p className="text-sm font-semibold">No materials match this filter</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
-                        <div className="p-3 bg-[var(--bg-main)] border-t border-[var(--border-color)] text-[10px] text-[var(--text-secondary)] flex justify-between items-center">
+
+                        {/* Modal Footer */}
+                        <div className="p-3.5 bg-[var(--bg-main)] border-t border-[var(--border-color)] text-xs text-[var(--text-secondary)] flex justify-between items-center">
                             <span>Showing {filteredMaterialsForPicker.length} items</span>
+                            <span className="font-mono text-[10px]">Press Esc to close</span>
                         </div>
                     </div>
                 </div>

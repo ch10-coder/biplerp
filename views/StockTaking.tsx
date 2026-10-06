@@ -497,7 +497,7 @@ const StockTaking: React.FC<Props> = ({ data, onUpdate }) => {
                         </select>
                     </div>
                     
-                    <div className="flex gap-2 w-full md:w-auto justify-end relative">
+                    <div className="flex flex-wrap gap-2 w-full md:w-auto justify-start md:justify-end relative">
                         <Button variant="secondary" onClick={onUpdate} className="text-xs py-1 px-3 h-8 flex items-center gap-2 border-[var(--border-color)] hover:bg-[var(--bg-main)]">
                             <RefreshCw size={14} /> Refresh
                         </Button>

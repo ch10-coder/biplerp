@@ -3,13 +3,22 @@ import { AppData, ViewName, Task, Material } from '../types';
 import { calculateBatches, toggleMonthlyEssentialStatus, updateDashboardTasks, updateMaterial } from '../services/storageService';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { Search, ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, CheckSquare, Plus, Trash2, BarChart2, Share2, Download, Layers, Activity, PieChart as PieIcon, CheckCircle, ShoppingBag, Calendar, Hash, ChevronRight, Truck, ShoppingCart, ShieldCheck, ClipboardCheck } from 'lucide-react';
-import { XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, AreaChart, Area, PieChart, Pie, Legend, Sector } from 'recharts';
-import { motion } from 'framer-motion';
+import { Badge } from '../components/ui/Badge';
+import { 
+  Search, ArrowUpRight, TrendingUp, AlertTriangle, Plus, Trash2, 
+  Layers, Activity, PieChart as PieIcon, CheckCircle, Calendar, 
+  ShoppingCart, ShieldCheck, ClipboardCheck, Sparkles, CheckSquare, 
+  Truck, ArrowRight, ArrowDownRight, Package, Calculator 
+} from 'lucide-react';
+import { 
+  XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid, 
+  AreaChart, Area, PieChart, Pie, Sector 
+} from 'recharts';
 
 interface DashboardProps {
     data: AppData;
     onViewChange: (view: ViewName) => void;
+    onUpdate?: () => void;
 }
 
 const renderActiveShape = (props: any) => {
@@ -17,37 +26,65 @@ const renderActiveShape = (props: any) => {
   const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
   const sin = Math.sin(-RADIAN * midAngle);
   const cos = Math.cos(-RADIAN * midAngle);
-  const sx = cx + (outerRadius + 10) * cos;
-  const sy = cy + (outerRadius + 10) * sin;
-  const mx = cx + (outerRadius + 30) * cos;
-  const my = cy + (outerRadius + 30) * sin;
-  const ex = mx + (cos >= 0 ? 1 : -1) * 22;
+  const sx = cx + (outerRadius + 8) * cos;
+  const sy = cy + (outerRadius + 8) * sin;
+  const mx = cx + (outerRadius + 24) * cos;
+  const my = cy + (outerRadius + 24) * sin;
+  const ex = mx + (cos >= 0 ? 1 : -1) * 20;
   const ey = my;
   const textAnchor = cos >= 0 ? 'start' : 'end';
 
+  const displayName = payload?.name 
+    ? (payload.name.length > 12 ? `${payload.name.substring(0, 12)}...` : payload.name) 
+    : 'Unnamed';
+  const displayVal = typeof value === 'number' ? value.toLocaleString() : (value || '0');
+  const displayPercent = typeof percent === 'number' ? (percent * 100).toFixed(1) : '0';
+
   return (
     <g>
-      <text x={cx} y={cy} dy={8} textAnchor="middle" fill="#fff" className="text-sm font-bold">
-        {payload.name.substring(0, 10)}
+      <text x={cx} y={cy} dy={4} textAnchor="middle" fill="var(--text-primary)" className="text-xs font-bold font-mono">
+        {displayName}
       </text>
       <Sector cx={cx} cy={cy} innerRadius={innerRadius} outerRadius={outerRadius} startAngle={startAngle} endAngle={endAngle} fill={fill} />
-      <Sector cx={cx} cy={cy} startAngle={startAngle} endAngle={endAngle} innerRadius={outerRadius + 6} outerRadius={outerRadius + 10} fill={fill} />
-      <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
-      <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
-      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#9ca3af" fontSize={10}>
-        {`Val: ${value.toLocaleString()}`}
+      <Sector cx={cx} cy={cy} startAngle={startAngle} endAngle={endAngle} innerRadius={outerRadius + 4} outerRadius={outerRadius + 8} fill={fill} />
+      <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" strokeWidth={1.5} />
+      <circle cx={ex} cy={ey} r={2.5} fill={fill} stroke="none" />
+      <text x={ex + (cos >= 0 ? 1 : -1) * 8} y={ey - 4} textAnchor={textAnchor} fill="var(--text-secondary)" fontSize={10} className="font-mono">
+        {`Val: ${displayVal}`}
       </text>
-      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={14} textAnchor={textAnchor} fill="#fff" fontSize={10} fontWeight="bold">
-        {`(${(percent * 100).toFixed(1)}%)`}
+      <text x={ex + (cos >= 0 ? 1 : -1) * 8} y={ey + 12} textAnchor={textAnchor} fill="var(--text-primary)" fontSize={10} fontWeight="bold" className="font-mono">
+        {`(${displayPercent}%)`}
       </text>
     </g>
   );
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ data, onViewChange }) => {
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-[var(--bg-sidebar)] border border-[var(--border-color)] p-3 rounded-xl shadow-xl backdrop-blur-md">
+        <p className="text-xs font-bold text-[var(--text-primary)] mb-2 font-mono">{label}</p>
+        {payload.map((entry: any, index: number) => (
+          <div key={`tooltip-${index}`} className="flex items-center justify-between gap-4 text-xs font-medium py-0.5">
+            <span className="flex items-center gap-1.5" style={{ color: entry.color }}>
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+              {entry.name}:
+            </span>
+            <span className="font-mono font-bold text-[var(--text-primary)]">
+              ₹{Number(entry.value).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
+const Dashboard: React.FC<DashboardProps> = ({ data, onViewChange, onUpdate }) => {
     const [globalSearch, setGlobalSearch] = useState('');
     const [procurementTab, setProcurementTab] = useState<'LOW_STOCK' | 'MONTHLY'>('MONTHLY');
-    const [activityTab, setActivityTab] = useState<'ACTIVITY' | 'TASKS'>('ACTIVITY');
+    const [activityTab, setActivityTab] = useState<'VERIFY' | 'TASKS'>('VERIFY');
     const [activeIndex, setActiveIndex] = useState(0);
     const [tasks, setTasks] = useState<Task[]>(data.tasks || []);
     const [newTask, setNewTask] = useState('');
@@ -57,15 +94,21 @@ const Dashboard: React.FC<DashboardProps> = ({ data, onViewChange }) => {
     // Optimistic UI state for verification
     const [verifiedIds, setVerifiedIds] = useState<Set<string>>(new Set());
 
+    // Synchronize tasks when data.tasks changes via external/realtime sync
+    useEffect(() => {
+        setTasks(data.tasks || []);
+    }, [data.tasks]);
+
     const saveTasks = async (newTasks: Task[]) => {
         setTasks(newTasks);
-        await updateDashboardTasks(newTasks); 
+        await updateDashboardTasks(newTasks);
+        onUpdate?.();
     };
 
     const addTask = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newTask.trim()) return;
-        await saveTasks([...tasks, { id: Date.now().toString(), text: newTask, done: false }]);
+        await saveTasks([...tasks, { id: Date.now().toString(), text: newTask.trim(), done: false }]);
         setNewTask('');
     };
 
@@ -77,56 +120,55 @@ const Dashboard: React.FC<DashboardProps> = ({ data, onViewChange }) => {
         await saveTasks(tasks.filter(t => t.id !== id));
     };
 
-    // --- Verification Logic ---
+    // Pre-indexed map for latest issue date per material to avoid N+1 sorting
+    const latestIssueDateMap = useMemo(() => {
+        const map = new Map<string, string>();
+        data.transactions.forEach(t => {
+            if (t.type === 'ISSUE' && t.materialId && t.date) {
+                const existing = map.get(t.materialId);
+                if (!existing || new Date(t.date).getTime() > new Date(existing).getTime()) {
+                    map.set(t.materialId, t.date);
+                }
+            }
+        });
+        return map;
+    }, [data.transactions]);
+
+    // Verification Logic (Optimized)
     const verificationQueue = useMemo(() => {
         const today = new Date().toISOString().split('T')[0];
         
         return data.materials.filter(m => {
-            // 0. Check Optimistic State first
             if (verifiedIds.has(m.id)) return false;
-
-            // 1. Must have stock left
             if ((m.currentStock || 0) <= 0.0001) return false;
             
-            // 2. Must have been issued at least once (Active Item)
-            const hasBeenIssued = data.transactions.some(t => t.materialId === m.id && t.type === 'ISSUE');
-            if (!hasBeenIssued) return false;
+            // Must have been issued at least once
+            const lastDate = latestIssueDateMap.get(m.id);
+            if (!lastDate) return false;
 
-            // 3. Must NOT have been verified today
             const lastVerifiedDate = m.lastVerified ? m.lastVerified.split('T')[0] : null;
             return lastVerifiedDate !== today;
-        }).map(m => {
-            // Find the last issue date for display
-            const issues = data.transactions
-                .filter(t => t.materialId === m.id && t.type === 'ISSUE')
-                .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            
-            return {
-                ...m,
-                lastIssueDate: issues[0]?.date || null
-            };
-        }).sort((a,b) => {
-            // Priority: Items not verified for longest time first
+        }).map(m => ({
+            ...m,
+            lastIssueDate: latestIssueDateMap.get(m.id) || null
+        })).sort((a,b) => {
             const dateA = a.lastVerified ? new Date(a.lastVerified).getTime() : 0;
             const dateB = b.lastVerified ? new Date(b.lastVerified).getTime() : 0;
             return dateA - dateB;
         });
-    }, [data.materials, data.transactions, refreshTick, verifiedIds]);
+    }, [data.materials, latestIssueDateMap, refreshTick, verifiedIds]);
 
     const handleVerifyItem = async (m: Material) => {
-        // Optimistic Update: Hide immediately
         setVerifiedIds(prev => new Set(prev).add(m.id));
-        
-        // Background DB Update
         await updateMaterial({
             ...m,
             lastVerified: new Date().toISOString()
         });
-        // We trigger refresh, but the UI is already updated via local state
         setRefreshTick(prev => prev + 1);
+        onUpdate?.();
     };
 
-    // --- Calculations ---
+    // Financial & Inventory Metrics
     const totalStockValue = useMemo(() => {
         return data.materials.reduce((acc, m) => {
             const batches = calculateBatches(m.id, data);
@@ -162,9 +204,15 @@ const Dashboard: React.FC<DashboardProps> = ({ data, onViewChange }) => {
         data.materials.forEach(m => {
             const batches = calculateBatches(m.id, data);
             const val = batches.reduce((sum, b) => sum + (b.remainingQty * (b.avgRate ?? b.rate)), 0);
-            if (val > 0) { groups[m.group || 'Unassigned'] = (groups[m.group || 'Unassigned'] || 0) + val; }
+            if (val > 0) { 
+                const grp = m.group ? m.group.trim() : 'General';
+                groups[grp] = (groups[grp] || 0) + val; 
+            }
         });
-        return Object.entries(groups).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 6);
+        return Object.entries(groups)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 6);
     }, [data.materials, data.transactions]);
 
     const financialTrendData = useMemo(() => {
@@ -187,13 +235,9 @@ const Dashboard: React.FC<DashboardProps> = ({ data, onViewChange }) => {
         return trend;
     }, [data.transactions]);
 
-    const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setGlobalSearch(e.target.value);
-    };
+    const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'];
 
-    const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-
-    // Filtered Data based on Global Search
+    // Search filters
     const filteredLowStock = useMemo(() => {
         if (!globalSearch) return lowStockItems;
         const term = globalSearch.toLowerCase();
@@ -218,206 +262,519 @@ const Dashboard: React.FC<DashboardProps> = ({ data, onViewChange }) => {
         return tasks.filter(t => t.text.toLowerCase().includes(term));
     }, [tasks, globalSearch]);
 
-    const containerVariants: any = {
-        hidden: { opacity: 0 },
-        show: {
-            opacity: 1,
-            transition: { staggerChildren: 0.05 }
-        }
-    };
-
-    const itemVariants: any = {
-        hidden: { opacity: 0, y: 20 },
-        show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
-    };
-
     return (
-        <motion.div 
-            className="h-full overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar bg-[var(--bg-main)]"
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
-        >
-            <motion.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="p-4 sm:p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
+            
+            {/* Top Bar: Title & Search Filter */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold text-[var(--text-primary)] tracking-tight">Dashboard</h2>
-                    <div className="text-sm text-gray-400">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--text-primary)] tracking-tight">
+                        Store Overview
+                    </h1>
+                    <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-0.5 font-medium">
+                        {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
                 </div>
-                <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-                    <div className="relative w-full sm:w-64 group">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Search size={16} className="text-gray-500 group-focus-within:text-[var(--accent)] transition-colors" /></div>
-                        <input type="text" value={globalSearch} onChange={handleSearch} placeholder="Quick filter dashboard..." className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl pl-10 pr-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all shadow-lg" />
-                    </div>
-                    <div className="flex gap-2 w-full sm:w-auto">
-                        <Button onClick={() => onViewChange('PURCHASE')} variant="primary" className="flex-1 sm:flex-none whitespace-nowrap flex items-center justify-center gap-2 shadow-lg shadow-[var(--accent)]/20">
-                            <Plus size={16}/> Purchase
-                        </Button>
-                        <Button onClick={() => onViewChange('ISSUE')} variant="secondary" className="flex-1 sm:flex-none whitespace-nowrap flex items-center justify-center gap-2">
-                            <ArrowUpRight size={16}/> Issue
-                        </Button>
-                    </div>
+
+                {/* Quick Search on Dashboard */}
+                <div className="w-full md:w-80 relative">
+                    <Search size={16} className="absolute left-3.5 top-3 text-[var(--text-secondary)] pointer-events-none" />
+                    <input 
+                        type="text" 
+                        value={globalSearch} 
+                        onChange={e => setGlobalSearch(e.target.value)} 
+                        placeholder="Filter items, alerts & tasks..." 
+                        className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm text-[var(--text-primary)] placeholder-[var(--text-secondary)]/60 focus:outline-none focus:border-[var(--accent)] shadow-sm"
+                    />
+                    {globalSearch && (
+                        <button 
+                            type="button"
+                            onClick={() => setGlobalSearch('')}
+                            className="absolute right-3 top-2.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
+                        >
+                            ✕
+                        </button>
+                    )}
                 </div>
-            </motion.div>
+            </div>
 
-            <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="p-0 bg-gradient-to-br from-[var(--bg-card)] to-blue-900/10 border-[var(--border-color)] shadow-md">
-                    <div className="p-5"><div className="flex justify-between items-start mb-4"><div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-400"><Layers size={22} /></div><span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Inventory</span></div><div className="text-2xl font-bold text-[var(--text-primary)] font-mono tracking-tight">{currencySymbol} {totalStockValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div><div className="text-xs text-gray-500 mt-1">{data.materials.length} Items</div></div>
-                </Card>
-                <Card className="p-0 bg-gradient-to-br from-[var(--bg-card)] to-green-900/10 border-[var(--border-color)] shadow-md">
-                    <div className="p-5"><div className="flex justify-between items-start mb-4"><div className="p-2.5 bg-green-500/10 rounded-xl text-green-400"><TrendingUp size={22} /></div><span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Inflow (Mo)</span></div><div className="text-2xl font-bold text-[var(--text-primary)] font-mono tracking-tight">{currencySymbol} {financialTrendData[5].Purchase.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div><div className="text-xs text-green-500/80 mt-1 font-medium">+ Purchase Value</div></div>
-                </Card>
-                <Card className="p-0 bg-gradient-to-br from-[var(--bg-card)] to-purple-900/10 border-[var(--border-color)] shadow-md">
-                    <div className="p-5"><div className="flex justify-between items-start mb-4"><div className="p-2.5 bg-purple-500/10 rounded-xl text-purple-400"><ArrowUpRight size={22} /></div><span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Outflow (Mo)</span></div><div className="text-2xl font-bold text-[var(--text-primary)] font-mono tracking-tight">{currencySymbol} {financialTrendData[5].Issue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div><div className="text-xs text-purple-500/80 mt-1 font-medium">Issues This Month</div></div>
-                </Card>
-                <Card className="p-0 bg-gradient-to-br from-[var(--bg-card)] to-red-900/10 border-[var(--border-color)] shadow-md">
-                    <div className="p-5"><div className="flex justify-between items-start mb-4"><div className="p-2.5 bg-red-500/10 rounded-xl text-red-400"><AlertTriangle size={22} /></div><span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Alerts</span></div><div className={`text-2xl font-bold font-mono tracking-tight ${lowStockItems.length > 0 ? 'text-red-400' : 'text-[var(--text-primary)]'}`}>{lowStockItems.length}</div><div className="text-xs text-gray-500 mt-1">Items below min level</div></div>
-                </Card>
-            </motion.div>
+            {/* Quick Actions Strip */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <button
+                    type="button"
+                    onClick={() => onViewChange('PURCHASE')}
+                    className="p-3.5 rounded-2xl bg-gradient-to-br from-[var(--accent)]/15 to-blue-600/5 border border-[var(--accent)]/30 hover:border-[var(--accent)] text-[var(--text-primary)] hover:shadow-lg hover:shadow-[var(--accent)]/10 transition-all flex items-center gap-3 text-left group cursor-pointer"
+                >
+                    <div className="w-10 h-10 rounded-xl bg-[var(--accent)] text-white flex items-center justify-center shadow-md shadow-[var(--accent)]/30 shrink-0 group-hover:scale-105 transition-transform">
+                        <Truck size={20} />
+                    </div>
+                    <div className="min-w-0">
+                        <div className="text-xs font-bold group-hover:text-[var(--accent)] transition-colors truncate">New Inward</div>
+                        <div className="text-[10px] text-[var(--text-secondary)] truncate">Bill Entry</div>
+                    </div>
+                </button>
 
-            <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-2 min-h-[380px] flex flex-col p-6 border-[var(--border-color)]">
-                    <div className="flex justify-between items-center mb-6"><div><h3 className="font-bold text-[var(--text-primary)] flex items-center gap-2 text-base"><Activity size={18} className="text-[var(--accent)]" /> Financial Overview</h3><p className="text-xs text-gray-500 mt-1">6-Month Trend</p></div></div>
-                    <div className="flex-1 w-full min-h-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={financialTrendData}>
-                                <defs><linearGradient id="colorPurchase" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/><stop offset="95%" stopColor="#10b981" stopOpacity={0}/></linearGradient><linearGradient id="colorIssue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#ef4444" stopOpacity={0.4}/><stop offset="95%" stopColor="#ef4444" stopOpacity={0}/></linearGradient></defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" opacity={0.3} />
-                                <XAxis dataKey="name" tick={{fill: '#6b7280', fontSize: 11}} axisLine={false} tickLine={false} />
-                                <YAxis tick={{fill: '#6b7280', fontSize: 11}} axisLine={false} tickLine={false} tickFormatter={(val) => `${val/1000}k`} />
-                                <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }} />
-                                <Area type="monotone" dataKey="Purchase" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorPurchase)" />
-                                <Area type="monotone" dataKey="Issue" stroke="#ef4444" strokeWidth={3} fillOpacity={1} fill="url(#colorIssue)" />
+                <button
+                    type="button"
+                    onClick={() => onViewChange('ISSUE')}
+                    className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-500/15 to-indigo-600/5 border border-purple-500/30 hover:border-purple-500 text-[var(--text-primary)] hover:shadow-lg hover:shadow-purple-500/10 transition-all flex items-center gap-3 text-left group cursor-pointer"
+                >
+                    <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-md shadow-purple-600/30 shrink-0 group-hover:scale-105 transition-transform">
+                        <ShoppingCart size={20} />
+                    </div>
+                    <div className="min-w-0">
+                        <div className="text-xs font-bold group-hover:text-purple-400 transition-colors truncate">Issue Material</div>
+                        <div className="text-[10px] text-[var(--text-secondary)] truncate">Department Issue</div>
+                    </div>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => onViewChange('STOCK_TAKING')}
+                    className="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-teal-600/5 border border-emerald-500/30 hover:border-emerald-500 text-[var(--text-primary)] hover:shadow-lg hover:shadow-emerald-500/10 transition-all flex items-center gap-3 text-left group cursor-pointer"
+                >
+                    <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/30 shrink-0 group-hover:scale-105 transition-transform">
+                        <ShieldCheck size={20} />
+                    </div>
+                    <div className="min-w-0">
+                        <div className="text-xs font-bold group-hover:text-emerald-400 transition-colors truncate">Physical Audit</div>
+                        <div className="text-[10px] text-[var(--text-secondary)] truncate">Stock Check</div>
+                    </div>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => onViewChange('WORK_AREA')}
+                    className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-500/15 to-zinc-600/5 border border-[var(--border-color)] hover:border-[var(--text-secondary)] text-[var(--text-primary)] hover:shadow-lg transition-all flex items-center gap-3 text-left group cursor-pointer"
+                >
+                    <div className="w-10 h-10 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] flex items-center justify-center shadow-sm shrink-0 group-hover:scale-105 transition-transform">
+                        <Calculator size={20} />
+                    </div>
+                    <div className="min-w-0">
+                        <div className="text-xs font-bold transition-colors truncate">Workbench</div>
+                        <div className="text-[10px] text-[var(--text-secondary)] truncate">Scratchpad & Math</div>
+                    </div>
+                </button>
+            </div>
+
+            {/* 4 Hero Metric KPI Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* 1. Total Stock Valuation */}
+                <Card className="border-[var(--border-color)] hover:border-blue-500/40 relative overflow-hidden" hoverable>
+                    <div className="flex justify-between items-start mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center">
+                            <Layers size={20} />
+                        </div>
+                        <Badge variant="blue" size="sm">Catalog</Badge>
+                    </div>
+                    <div className="text-xl sm:text-2xl font-bold font-mono tracking-tight text-[var(--text-primary)]">
+                        {currencySymbol} {totalStockValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mt-1.5 pt-2 border-t border-[var(--border-color)]/60">
+                        <span>Total Inventory</span>
+                        <span className="font-mono font-bold text-[var(--text-primary)]">{data.materials.length} SKUs</span>
+                    </div>
+                </Card>
+
+                {/* 2. Monthly Inflow */}
+                <Card className="border-[var(--border-color)] hover:border-emerald-500/40 relative overflow-hidden" hoverable>
+                    <div className="flex justify-between items-start mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+                            <TrendingUp size={20} />
+                        </div>
+                        <Badge variant="emerald" size="sm" dot>Inflow</Badge>
+                    </div>
+                    <div className="text-xl sm:text-2xl font-bold font-mono tracking-tight text-[var(--text-primary)]">
+                        {currencySymbol} {financialTrendData[5]?.Purchase.toLocaleString(undefined, { maximumFractionDigits: 0 }) || '0'}
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400 mt-1.5 pt-2 border-t border-[var(--border-color)]/60 font-medium">
+                        <span>Purchases (This Mo)</span>
+                        <ArrowUpRight size={14} />
+                    </div>
+                </Card>
+
+                {/* 3. Monthly Outflow */}
+                <Card className="border-[var(--border-color)] hover:border-purple-500/40 relative overflow-hidden" hoverable>
+                    <div className="flex justify-between items-start mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-400 flex items-center justify-center">
+                            <ArrowUpRight size={20} />
+                        </div>
+                        <Badge variant="purple" size="sm">Issued</Badge>
+                    </div>
+                    <div className="text-xl sm:text-2xl font-bold font-mono tracking-tight text-[var(--text-primary)]">
+                        {currencySymbol} {financialTrendData[5]?.Issue.toLocaleString(undefined, { maximumFractionDigits: 0 }) || '0'}
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-purple-600 dark:text-purple-400 mt-1.5 pt-2 border-t border-[var(--border-color)]/60 font-medium">
+                        <span>Issued Material</span>
+                        <span className="text-[10px] font-mono">Current Mo</span>
+                    </div>
+                </Card>
+
+                {/* 4. Low Stock Alerts */}
+                <Card className="border-[var(--border-color)] hover:border-rose-500/40 relative overflow-hidden" hoverable>
+                    <div className="flex justify-between items-start mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-rose-500/15 text-rose-400 flex items-center justify-center">
+                            <AlertTriangle size={20} />
+                        </div>
+                        <Badge variant={lowStockItems.length > 0 ? 'rose' : 'emerald'} size="sm" dot={lowStockItems.length > 0}>
+                            {lowStockItems.length > 0 ? 'Action Needed' : 'Healthy'}
+                        </Badge>
+                    </div>
+                    <div className={`text-xl sm:text-2xl font-bold font-mono tracking-tight ${lowStockItems.length > 0 ? 'text-rose-500 dark:text-rose-400' : 'text-[var(--text-primary)]'}`}>
+                        {lowStockItems.length}
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mt-1.5 pt-2 border-t border-[var(--border-color)]/60">
+                        <span>Below Min Level</span>
+                        {lowStockItems.length > 0 && (
+                            <button 
+                                type="button"
+                                onClick={() => setProcurementTab('LOW_STOCK')}
+                                className="text-[10px] text-rose-500 dark:text-rose-400 font-bold hover:underline cursor-pointer"
+                            >
+                                View List →
+                            </button>
+                        )}
+                    </div>
+                </Card>
+            </div>
+
+            {/* Analytics Section: 6-Month Trend & Category Donut */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                {/* 6-Month Trend Area Chart */}
+                <Card 
+                    className="md:col-span-2 min-h-[380px] flex flex-col"
+                    title={
+                        <div className="flex items-center gap-2 text-sm sm:text-base">
+                            <Activity size={18} className="text-[var(--accent)]" />
+                            <span>Purchase vs Issuance Movement</span>
+                        </div>
+                    }
+                    subtitle="6-month financial trajectory of store procurement and consumption"
+                    action={
+                        <div className="flex items-center gap-3 text-xs font-mono">
+                            <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+                                <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" /> Inward
+                            </span>
+                            <span className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-medium">
+                                <span className="w-2.5 h-2.5 rounded-sm bg-rose-500" /> Outward
+                            </span>
+                        </div>
+                    }
+                >
+                    <div className="w-full h-[280px] min-w-0 pt-2">
+                        <ResponsiveContainer width="100%" height={280} minWidth={0}>
+                            <AreaChart data={financialTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="colorPurchaseModern" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.35}/>
+                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
+                                    </linearGradient>
+                                    <linearGradient id="colorIssueModern" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.35}/>
+                                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0.0}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" opacity={0.4} />
+                                <XAxis dataKey="name" tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                                <YAxis tick={{ fill: 'var(--text-secondary)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(val) => `${val/1000}k`} />
+                                <Tooltip content={<CustomTooltip />} />
+                                <Area type="monotone" dataKey="Purchase" name="Inward Bill" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorPurchaseModern)" />
+                                <Area type="monotone" dataKey="Issue" name="Outward Issue" stroke="#ef4444" strokeWidth={2.5} fillOpacity={1} fill="url(#colorIssueModern)" />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
                 </Card>
 
-                <Card className="min-h-[380px] flex flex-col p-6 border-[var(--border-color)]">
-                    <h3 className="font-bold text-[var(--text-primary)] flex items-center gap-2 text-base"><PieIcon size={18} className="text-purple-500" /> Distribution</h3>
-                    <div className="flex-1 w-full min-h-0">
-                        <ResponsiveContainer width="100%" height="100%">
+                {/* Category Valuation Donut */}
+                <Card 
+                    className="min-h-[380px] flex flex-col"
+                    title={
+                        <div className="flex items-center gap-2 text-sm sm:text-base">
+                            <PieIcon size={18} className="text-purple-400" />
+                            <span>Top Categories</span>
+                        </div>
+                    }
+                    subtitle="Inventory value distribution"
+                >
+                    <div className="w-full h-[250px] min-w-0">
+                        <ResponsiveContainer width="100%" height={250} minWidth={0}>
                             <PieChart>
-                                {/* @ts-ignore */}
-                                <Pie activeIndex={activeIndex} activeShape={renderActiveShape} data={groupCompositionData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} dataKey="value" onMouseEnter={(_, i) => setActiveIndex(i)} stroke="none">
-                                    {groupCompositionData.map((_, index) => (<Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />))}
+                                <Pie 
+                                    activeIndex={activeIndex} 
+                                    activeShape={renderActiveShape} 
+                                    data={groupCompositionData} 
+                                    cx="50%" 
+                                    cy="50%" 
+                                    innerRadius={55} 
+                                    outerRadius={75} 
+                                    dataKey="value" 
+                                    onMouseEnter={(_, i) => setActiveIndex(i)} 
+                                    stroke="none"
+                                >
+                                    {groupCompositionData.map((_, index) => (
+                                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                                    ))}
                                 </Pie>
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
-                </Card>
-            </motion.div>
 
-            <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-24">
-                {/* Monthly Essentials / Low Stock Section */}
-                <div className="lg:col-span-2">
-                    <Card className="flex flex-col h-[500px] p-0 overflow-hidden border-[var(--border-color)] bg-[var(--bg-card)]">
-                         <div className="flex justify-between items-center p-4 border-b border-[var(--border-color)] bg-[var(--bg-main)]/50 shrink-0">
+                    {/* Compact Legend Chips */}
+                    <div className="grid grid-cols-2 gap-1.5 pt-3 border-t border-[var(--border-color)]">
+                        {groupCompositionData.slice(0, 4).map((g, idx) => (
+                            <div key={g.name} className="flex items-center gap-2 text-xs truncate">
+                                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
+                                <span className="text-[var(--text-secondary)] truncate">{g.name}</span>
+                            </div>
+                        ))}
+                    </div>
+                </Card>
+            </div>
+
+            {/* Operations Section: Stock Reorder / Verification Queue */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                {/* Left 2 Cols: Monthly Essentials / Low Stock Reorder */}
+                <div className="md:col-span-2">
+                    <Card className="flex flex-col h-[480px] p-0 overflow-hidden">
+                        
+                        {/* Segmented Header */}
+                        <div className="p-3.5 sm:p-4 border-b border-[var(--border-color)] bg-[var(--bg-main)]/40 flex justify-between items-center">
                             <div className="flex gap-2">
-                                <button onClick={() => setProcurementTab('MONTHLY')} className={`text-xs font-bold px-4 py-2 rounded-lg transition-all flex items-center gap-2 ${procurementTab === 'MONTHLY' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/30' : 'text-gray-500 hover:text-white'}`}><Calendar size={14}/> Monthly Essentials</button>
-                                <button onClick={() => setProcurementTab('LOW_STOCK')} className={`text-xs font-bold px-4 py-2 rounded-lg transition-all flex items-center gap-2 ${procurementTab === 'LOW_STOCK' ? 'bg-red-500/10 text-red-400 border border-red-500/30' : 'text-gray-500 hover:text-white'}`}><AlertTriangle size={14}/> Low Stock</button>
+                                <button 
+                                    type="button"
+                                    onClick={() => setProcurementTab('MONTHLY')} 
+                                    className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+                                        procurementTab === 'MONTHLY' 
+                                            ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 shadow-sm' 
+                                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                                    }`}
+                                >
+                                    <Calendar size={14} /> Monthly Essentials
+                                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[var(--bg-card)] border border-[var(--border-color)] font-mono">
+                                        {monthlyEssentialsData.pending.length}
+                                    </span>
+                                </button>
+                                
+                                <button 
+                                    type="button"
+                                    onClick={() => setProcurementTab('LOW_STOCK')} 
+                                    className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+                                        procurementTab === 'LOW_STOCK' 
+                                            ? 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 shadow-sm' 
+                                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                                    }`}
+                                >
+                                    <AlertTriangle size={14} /> Critical Low Stock
+                                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[var(--bg-card)] border border-[var(--border-color)] font-mono">
+                                        {lowStockItems.length}
+                                    </span>
+                                </button>
                             </div>
                         </div>
-                        <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+
+                        {/* List Content */}
+                        <div className="flex-1 overflow-y-auto p-3 space-y-2">
                             {procurementTab === 'LOW_STOCK' ? (
                                 filteredLowStock.length > 0 ? (
                                     filteredLowStock.map(m => (
-                                        <div key={m.id} className="flex justify-between items-center p-3 hover:bg-[var(--bg-main)] rounded-lg border border-transparent hover:border-[var(--border-color)] transition-all group">
-                                            <div><div className="font-bold text-[var(--text-primary)] text-sm">{m.name}</div><div className="text-[10px] text-gray-500 mt-0.5 uppercase">{m.location} • {m.group}</div></div>
-                                            <div className="text-right"><div className="font-bold text-red-400 font-mono text-base">{m.currentStock} <span className="text-[10px] text-gray-600 font-sans">{m.unit}</span></div><div className="text-[10px] text-gray-600 font-bold">MIN: {m.minLevel}</div></div>
+                                        <div 
+                                            key={m.id} 
+                                            className="flex justify-between items-center p-3.5 rounded-xl bg-[var(--bg-main)]/30 hover:bg-[var(--bg-card)] border border-[var(--border-color)] transition-all group"
+                                        >
+                                            <div className="min-w-0 pr-3">
+                                                <div className="font-bold text-sm text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors truncate">
+                                                    {m.name}
+                                                </div>
+                                                <div className="text-[10px] text-[var(--text-secondary)] mt-0.5 uppercase tracking-wide truncate">
+                                                    {m.location || 'No Rack'} • {m.group || 'General'}
+                                                </div>
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                                <div className="font-bold text-rose-500 dark:text-rose-400 font-mono text-base">
+                                                    {m.currentStock} <span className="text-xs text-[var(--text-secondary)] font-sans">{m.unit}</span>
+                                                </div>
+                                                <div className="text-[10px] text-[var(--text-secondary)] font-mono font-semibold">
+                                                    MIN LEVEL: {m.minLevel}
+                                                </div>
+                                            </div>
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="h-full flex flex-col items-center justify-center text-gray-500 opacity-50 py-20"><ClipboardCheck size={48} className="mb-2"/><p className="text-sm">{globalSearch ? 'No matching low stock items' : 'Stock levels are healthy!'}</p></div>
+                                    <div className="h-full flex flex-col items-center justify-center text-[var(--text-secondary)] py-16 text-center">
+                                        <ClipboardCheck size={44} className="text-emerald-500 dark:text-emerald-400 mb-2 opacity-80" />
+                                        <p className="text-sm font-bold text-[var(--text-primary)]">All stock levels are optimal</p>
+                                        <p className="text-xs text-[var(--text-secondary)] mt-1">Zero items currently below the reorder threshold</p>
+                                    </div>
                                 )
                             ) : (
                                 filteredPendingEssentials.length > 0 ? (
                                     filteredPendingEssentials.map(m => (
-                                        <div key={m.id} className="flex justify-between items-center p-3 hover:bg-[var(--bg-main)] rounded-lg border border-transparent hover:border-[var(--border-color)] transition-all">
-                                            <div><div className="font-medium text-yellow-100 text-sm">{m.name}</div><div className="text-[10px] text-gray-500 mt-0.5 uppercase">{m.group}</div></div>
-                                            <button onClick={() => toggleMonthlyEssentialStatus(m.id, true).then(() => setRefreshTick(t => t + 1))} className="text-gray-600 hover:text-green-400 p-2 hover:bg-green-400/10 rounded-lg transition-all" title="Mark as Restocked"><CheckSquare size={20}/></button>
+                                        <div 
+                                            key={m.id} 
+                                            className="flex justify-between items-center p-3.5 rounded-xl bg-[var(--bg-main)]/30 hover:bg-[var(--bg-card)] border border-[var(--border-color)] transition-all"
+                                        >
+                                            <div className="min-w-0 pr-3">
+                                                <div className="font-semibold text-sm text-[var(--text-primary)] truncate">
+                                                    {m.name}
+                                                </div>
+                                                <div className="text-[10px] text-[var(--text-secondary)] mt-0.5 uppercase font-mono">
+                                                    {m.group} • Current Stock: {m.currentStock} {m.unit}
+                                                </div>
+                                            </div>
+                                            <button 
+                                                type="button"
+                                                onClick={() => {
+                                                    toggleMonthlyEssentialStatus(m.id, true).then(() => {
+                                                        setRefreshTick(t => t + 1);
+                                                        onUpdate?.();
+                                                    });
+                                                }} 
+                                                className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500 text-emerald-600 dark:text-emerald-400 hover:text-white border border-emerald-500/20 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95" 
+                                                title="Mark as Restocked"
+                                            >
+                                                <CheckSquare size={14} /> Done
+                                            </button>
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="h-full flex flex-col items-center justify-center text-gray-500 opacity-50 py-20"><Calendar size={48} className="mb-2"/><p className="text-sm">{globalSearch ? 'No matching pending essentials' : 'Monthly Restock Complete!'}</p></div>
+                                    <div className="h-full flex flex-col items-center justify-center text-[var(--text-secondary)] py-16 text-center">
+                                        <Calendar size={44} className="text-amber-500 dark:text-amber-400 mb-2 opacity-80" />
+                                        <p className="text-sm font-bold text-[var(--text-primary)]">Monthly Restock Complete</p>
+                                        <p className="text-xs text-[var(--text-secondary)] mt-1">All essential supplies have been procured this month</p>
+                                    </div>
                                 )
                             )}
                         </div>
                     </Card>
                 </div>
 
-                {/* To Verify / Task Section */}
+                {/* Right 1 Col: Daily Verification Queue & Tasks */}
                 <div className="space-y-6">
-                     <Card className="flex flex-col h-[500px] p-0 border-[var(--border-color)] overflow-hidden bg-[var(--bg-card)]">
-                        <div className="p-3 border-b border-[var(--border-color)] bg-[var(--bg-main)]/50 shrink-0">
-                            <div className="flex gap-1 bg-[var(--bg-card)] p-1 rounded-xl border border-[var(--border-color)] shadow-inner">
-                                <button onClick={() => setActivityTab('ACTIVITY')} className={`flex-1 px-3 py-2 text-[11px] font-bold uppercase rounded-lg flex items-center justify-center gap-2 transition-all ${activityTab === 'ACTIVITY' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-white'}`}>
-                                    <ShieldCheck size={14}/> To Verify
+                    <Card className="flex flex-col h-[480px] p-0 overflow-hidden">
+                        
+                        {/* Segment Tab */}
+                        <div className="p-3 border-b border-[var(--border-color)] bg-[var(--bg-main)]/40">
+                            <div className="flex gap-1 bg-[var(--bg-card)] p-1 rounded-xl border border-[var(--border-color)]">
+                                <button 
+                                    type="button"
+                                    onClick={() => setActivityTab('VERIFY')} 
+                                    className={`flex-1 py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                                        activityTab === 'VERIFY' 
+                                            ? 'bg-[var(--accent)] text-white shadow-sm' 
+                                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                                    }`}
+                                >
+                                    <ShieldCheck size={14} /> To Verify ({verificationQueue.length})
                                 </button>
-                                <button onClick={() => setActivityTab('TASKS')} className={`flex-1 px-3 py-2 text-[11px] font-bold uppercase rounded-lg flex items-center justify-center gap-2 transition-all ${activityTab === 'TASKS' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-white'}`}>
-                                    <CheckSquare size={14}/> Tasks
+                                <button 
+                                    type="button"
+                                    onClick={() => setActivityTab('TASKS')} 
+                                    className={`flex-1 py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                                        activityTab === 'TASKS' 
+                                            ? 'bg-[var(--accent)] text-white shadow-sm' 
+                                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                                    }`}
+                                >
+                                    <CheckSquare size={14} /> Tasks ({tasks.filter(t => !t.done).length})
                                 </button>
                             </div>
                         </div>
-                        
+
                         {activityTab === 'TASKS' ? (
                             <div className="flex flex-col flex-1 min-h-0">
-                                <div className="p-3 border-b border-[var(--border-color)]/50"><form onSubmit={addTask} className="flex gap-2"><input value={newTask} onChange={(e) => setNewTask(e.target.value)} placeholder="Add quick task..." className="flex-1 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-sm px-4 py-2.5 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none shadow-inner" /><button type="submit" className="bg-[var(--accent)] text-white p-2.5 rounded-xl hover:opacity-90 shadow-lg shadow-[var(--accent)]/20"><Plus size={20} /></button></form></div>
-                                <div className="flex-1 overflow-y-auto space-y-1 p-2 custom-scrollbar">
-                                    {filteredTasks.length > 0 ? filteredTasks.map(t => (
-                                        <div key={t.id} className="group flex items-center gap-3 p-3 rounded-xl hover:bg-[var(--bg-main)] transition-colors border border-transparent hover:border-[var(--border-color)]">
-                                            <input type="checkbox" checked={t.done} onChange={() => toggleTask(t.id)} className="w-5 h-5 rounded-md border-[var(--border-color)] bg-[var(--bg-main)] text-[var(--accent)] focus:ring-[var(--accent)]" />
-                                            <span className={`flex-1 text-sm font-medium transition-all ${t.done ? 'text-gray-600 line-through' : 'text-gray-300'}`}>{t.text}</span>
-                                            <button onClick={() => deleteTask(t.id)} className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all p-1"><Trash2 size={16} /></button>
+                                
+                                {/* Add Task Form */}
+                                <form onSubmit={addTask} className="p-3 border-b border-[var(--border-color)] flex gap-2">
+                                    <input 
+                                        value={newTask} 
+                                        onChange={e => setNewTask(e.target.value)} 
+                                        placeholder="Add quick reminder..." 
+                                        className="flex-1 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-xs sm:text-sm px-3.5 py-2 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]" 
+                                    />
+                                    <Button type="submit" size="sm" variant="primary">
+                                        <Plus size={16} />
+                                    </Button>
+                                </form>
+
+                                {/* Task List */}
+                                <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5">
+                                    {filteredTasks.length > 0 ? (
+                                        filteredTasks.map(t => (
+                                            <div 
+                                                key={t.id} 
+                                                className="group flex items-center gap-3 p-3 rounded-xl hover:bg-[var(--bg-main)]/60 border border-[var(--border-color)]/50 transition-colors"
+                                            >
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={t.done} 
+                                                    onChange={() => toggleTask(t.id)} 
+                                                    className="w-4 h-4 rounded text-[var(--accent)] focus:ring-[var(--accent)] cursor-pointer" 
+                                                />
+                                                <span className={`flex-1 text-xs sm:text-sm font-medium transition-all ${
+                                                    t.done ? 'text-[var(--text-secondary)] line-through opacity-60' : 'text-[var(--text-primary)]'
+                                                }`}>
+                                                    {t.text}
+                                                </span>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => deleteTask(t.id)} 
+                                                    className="text-[var(--text-secondary)] hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity p-1 cursor-pointer"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="h-full flex flex-col items-center justify-center text-[var(--text-secondary)] py-16 text-center">
+                                            <CheckCircle size={40} className="mb-2 opacity-50" />
+                                            <p className="text-xs">No pending tasks</p>
                                         </div>
-                                    )) : (
-                                        <div className="h-full flex flex-col items-center justify-center text-gray-500 opacity-30 py-20"><CheckCircle size={40} className="mb-2"/><p className="text-xs">{globalSearch ? 'No matching tasks' : 'No pending tasks'}</p></div>
                                     )}
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex-1 flex flex-col min-h-0">
-                                <div className="flex-1 overflow-y-auto custom-scrollbar p-0 divide-y divide-[var(--border-color)]/50" style={{ touchAction: 'pan-y' }}>
-                                    {filteredVerificationQueue.length > 0 ? (
-                                        filteredVerificationQueue.map((m) => (
-                                            <div key={m.id} className="flex items-center gap-4 p-4 hover:bg-[var(--bg-main)]/80 transition-all group cursor-default relative animate-fadeIn">
-                                                <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-blue-900/20 text-blue-400 group-hover:scale-110 transition-transform border border-blue-900/30">
-                                                    <ShoppingCart size={18}/>
+                            <div className="flex-1 overflow-y-auto p-2.5 space-y-2">
+                                {filteredVerificationQueue.length > 0 ? (
+                                    filteredVerificationQueue.map(m => (
+                                        <div 
+                                            key={m.id} 
+                                            className="p-3 rounded-xl bg-[var(--bg-main)]/40 hover:bg-[var(--bg-card)] border border-[var(--border-color)] transition-all flex items-center justify-between gap-3 group"
+                                        >
+                                            <div className="min-w-0 flex-1">
+                                                <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors">
+                                                    {m.name}
                                                 </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex justify-between items-start">
-                                                        <span className="text-sm font-bold text-[var(--text-primary)] truncate block pr-2 group-hover:text-blue-300 transition-colors">{m.name}</span>
-                                                        <span className="text-sm font-mono font-bold text-green-400 shrink-0">{m.currentStock} <span className="text-[10px] text-gray-600 font-sans">{m.unit}</span></span>
-                                                    </div>
-                                                    <div className="flex justify-between items-end mt-1.5">
-                                                        <div className="flex flex-col">
-                                                            <span className="text-[10px] text-gray-500 uppercase font-bold tracking-tight">Last Issued: {m.lastIssueDate ? new Date(m.lastIssueDate).toLocaleDateString() : 'Historical'}</span>
-                                                            <span className="text-[10px] text-yellow-500/70 font-medium">Loc: {m.location || 'Not Set'}</span>
-                                                        </div>
-                                                        <button 
-                                                            onClick={() => handleVerifyItem(m)}
-                                                            className="bg-green-600/10 hover:bg-green-600 text-green-500 hover:text-white p-2 rounded-xl transition-all border border-green-500/20 shadow-sm hover:shadow-green-500/20 active:scale-95"
-                                                            title="Mark as Verified"
-                                                        >
-                                                            <ShieldCheck size={18}/>
-                                                        </button>
-                                                    </div>
+                                                <div className="flex items-center gap-2 text-[10px] text-[var(--text-secondary)] mt-0.5">
+                                                    <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">{m.currentStock} {m.unit}</span>
+                                                    <span>•</span>
+                                                    <span>Loc: {m.location || 'Rack -'}</span>
                                                 </div>
                                             </div>
-                                        ))
-                                    ) : (
-                                        <div className="h-full flex flex-col items-center justify-center text-gray-500 py-20 px-6 text-center animate-fadeIn">
-                                            <ShieldCheck size={48} className="opacity-10 mb-3"/>
-                                            <p className="text-sm font-bold opacity-30">{globalSearch ? 'No matching items' : 'Verification Queue Empty'}</p>
-                                            <p className="text-[10px] opacity-20 mt-1 uppercase tracking-widest">{globalSearch ? '' : 'All issued items with stock have been checked today'}</p>
+                                            <button 
+                                                type="button"
+                                                onClick={() => handleVerifyItem(m)}
+                                                className="px-2.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500 text-emerald-600 dark:text-emerald-400 hover:text-white border border-emerald-500/30 text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer shrink-0 active:scale-95 shadow-sm"
+                                                title="Mark Physical Stock Verified Today"
+                                            >
+                                                <ShieldCheck size={14} /> Check
+                                            </button>
                                         </div>
-                                    )}
-                                </div>
+                                    ))
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-[var(--text-secondary)] py-16 text-center">
+                                        <ShieldCheck size={44} className="text-emerald-500 dark:text-emerald-400 mb-2 opacity-80" />
+                                        <p className="text-sm font-bold text-[var(--text-primary)]">All Verified Today</p>
+                                        <p className="text-xs text-[var(--text-secondary)] mt-1">Daily physical stock checks complete</p>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </Card>
                 </div>
-            </motion.div>
-        </motion.div>
+            </div>
+        </div>
     );
 };
 

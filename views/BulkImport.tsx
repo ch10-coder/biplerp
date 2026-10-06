@@ -354,7 +354,7 @@ const BulkImport: React.FC<Props> = ({ onComplete }) => {
     if (step === 'MAPPING') {
         const headerRow = rawRows[0] || []; const sampleRow = rawRows[1] || [];
         return (
-            <div className="h-full overflow-y-auto custom-scrollbar p-4 md:p-6">
+            <div className="p-4 md:p-6 pb-24">
                 <div className="space-y-6 max-w-6xl mx-auto">
                     <div className="flex justify-between items-center">
                         <h2 className="text-2xl font-bold text-[var(--text-primary)]">Map CSV Columns</h2>
@@ -411,7 +411,7 @@ const BulkImport: React.FC<Props> = ({ onComplete }) => {
     }
 
     return (
-        <div className="h-full overflow-y-auto custom-scrollbar p-4 md:p-6">
+        <div className="p-4 md:p-6 pb-24">
             <div className="space-y-6 max-w-6xl mx-auto">
                 <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-bold text-[var(--text-primary)]">Preview & Confirm</h2>

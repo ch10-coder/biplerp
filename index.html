@@ -1,10 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="en" class="h-full">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>InventoryMate ERP</title>
+    
+    <!-- Modern Typography: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -13,18 +18,19 @@
           extend: {
             colors: {
               gray: {
-                850: '#1f2937',
+                850: '#1e2638',
                 900: '#111827',
-                950: '#030712',
+                950: '#090d16',
               }
             },
             fontFamily: {
-              sans: ['Inter', 'system-ui', 'sans-serif'],
-              mono: ['JetBrains Mono', 'Menlo', 'monospace'],
+              sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+              mono: ['"JetBrains Mono"', 'Menlo', 'monospace'],
             },
             animation: {
-              'fadeIn': 'fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards',
-              'slideDown': 'slideDown 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+              'fadeIn': 'fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'slideDown': 'slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'slideUp': 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
               'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             },
             keyframes: {
@@ -33,7 +39,11 @@
                 '100%': { opacity: '1', transform: 'scale(1)' },
               },
               slideDown: {
-                '0%': { opacity: '0', transform: 'translateY(-10px)' },
+                '0%': { opacity: '0', transform: 'translateY(-8px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              slideUp: {
+                '0%': { opacity: '0', transform: 'translateY(16px)' },
                 '100%': { opacity: '1', transform: 'translateY(0)' },
               }
             }
@@ -41,270 +51,251 @@
         }
       }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        /* --- THEME VARIABLES --- */
-        :root {
-            /* COSMIC GRAY (Default) - Deep Space & Titanium */
-            --bg-main: #030712;
-            --bg-orb-1: rgba(56, 189, 248, 0.08); /* Light Blue */
-            --bg-orb-2: rgba(139, 92, 246, 0.05); /* Violet */
-            
-            --glass-bg: linear-gradient(145deg, rgba(17, 24, 39, 0.7) 0%, rgba(17, 24, 39, 0.4) 100%);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --glass-shine: rgba(255, 255, 255, 0.03);
-            
-            --bg-card: rgba(17, 24, 39, 0.7); 
-            --bg-card-hover: rgba(31, 41, 55, 0.9);
-            
-            --bg-sidebar: rgba(10, 15, 25, 0.85);
-            --border-color: rgba(75, 85, 99, 0.4);
-            --border-highlight: rgba(96, 165, 250, 0.5);
-            
-            --text-primary: #f9fafb; /* Gray 50 */
-            --text-secondary: #9ca3af; /* Gray 400 */
-            
-            --accent: #3b82f6; /* Blue 500 */
-            --accent-glow: rgba(59, 130, 246, 0.3);
-            
-            color-scheme: dark;
-        }
-
-        [data-theme='midnight'] {
-            /* MIDNIGHT BLUR (Cyberpunk) - Neon & Navy */
-            --bg-main: #02020a; 
-            --bg-orb-1: rgba(79, 70, 229, 0.15); 
-            --bg-orb-2: rgba(236, 72, 153, 0.10); 
-
-            --glass-bg: linear-gradient(135deg, rgba(10, 10, 35, 0.8) 0%, rgba(15, 15, 45, 0.6) 100%);
-            --glass-border: rgba(99, 102, 241, 0.3);
-            --glass-shine: rgba(165, 180, 252, 0.05);
-            
-            --bg-card: rgba(15, 15, 40, 0.7);
-            --bg-card-hover: rgba(30, 30, 60, 0.8);
-            
-            --bg-sidebar: rgba(5, 5, 20, 0.9);
-            --border-color: rgba(99, 102, 241, 0.25);
-            --border-highlight: #a855f7;
-            
-            --text-primary: #e0e7ff; /* Indigo 50 */
-            --text-secondary: #818cf8; /* Indigo 400 */
-            
-            --accent: #6366f1; /* Indigo 500 */
-            --accent-glow: rgba(99, 102, 241, 0.6);
-            
-            color-scheme: dark;
-        }
-
-        [data-theme='forest'] {
-            /* FOREST GLASS (Tactical) - Deep Emerald */
-            --bg-main: #010a05;
-            --bg-orb-1: rgba(16, 185, 129, 0.1); 
-            --bg-orb-2: rgba(6, 78, 59, 0.2); 
-
-            --glass-bg: linear-gradient(135deg, rgba(2, 28, 20, 0.8) 0%, rgba(2, 20, 15, 0.6) 100%);
-            --glass-border: rgba(52, 211, 153, 0.2);
-            --glass-shine: rgba(167, 243, 208, 0.05);
-            
-            --bg-card: rgba(6, 44, 30, 0.6);
-            --bg-card-hover: rgba(6, 55, 40, 0.7);
-            
-            --bg-sidebar: rgba(1, 20, 10, 0.9);
-            --border-color: rgba(16, 185, 129, 0.25);
-            --border-highlight: #34d399;
-            
-            --text-primary: #ecfdf5; /* Emerald 50 */
-            --text-secondary: #34d399; /* Emerald 400 */
-            
-            --accent: #10b981; /* Emerald 500 */
-            --accent-glow: rgba(16, 185, 129, 0.4);
-            
-            color-scheme: dark;
-        }
-
-        [data-theme='light'] {
-            /* CLASSIC WHITE (Professional SaaS) - High Contrast & Clean */
-            --bg-main: #f1f5f9; /* Slate 100 */
-            --bg-orb-1: rgba(37, 99, 235, 0.05); 
-            --bg-orb-2: rgba(245, 158, 11, 0.05);
-
-            --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%);
-            --glass-border: rgba(203, 213, 225, 1); /* Slate 300 */
-            --glass-shine: rgba(255, 255, 255, 0.5);
-            
-            --bg-card: #ffffff;
-            --bg-card-hover: #f8fafc; /* Slate 50 */
-            
-            --bg-sidebar: #ffffff;
-            --border-color: #cbd5e1; /* Slate 300 - Stronger borders */
-            --border-highlight: #3b82f6;
-            
-            /* High Contrast Text */
-            --text-primary: #0f172a; /* Slate 900 - Almost Black */
-            --text-secondary: #475569; /* Slate 600 - Dark Gray */
-            
-            --accent: #2563eb; /* Blue 600 */
-            --accent-glow: rgba(37, 99, 235, 0.15);
-            
-            color-scheme: light;
-        }
-
-        /* --- GLOBAL STYLES --- */
-        body {
-            background-color: var(--bg-main);
-            
-            /* High Tech Background Layering */
-            background-image: 
-                url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E"),
-                linear-gradient(rgba(150, 150, 150, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(150, 150, 150, 0.03) 1px, transparent 1px),
-                radial-gradient(circle at 10% 20%, var(--bg-orb-1) 0%, transparent 40%),
-                radial-gradient(circle at 90% 80%, var(--bg-orb-2) 0%, transparent 40%);
-            
-            background-size: 200px 200px, 40px 40px, 40px 40px, 100% 100%, 100% 100%;
-            background-attachment: fixed;
-            background-position: 0 0, 0 0, 0 0, 0 0, 0 0;
-            
-            color: var(--text-primary);
-            font-family: 'Inter', sans-serif;
-            transition: background-color 0.4s ease, color 0.4s ease;
-        }
-
-        /* Premium Glass Effect */
-        .glass-effect {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px) saturate(140%);
-            -webkit-backdrop-filter: blur(20px) saturate(140%);
-            border: 1px solid var(--glass-border);
-            box-shadow: 
-                0 8px 32px 0 rgba(0, 0, 0, 0.2),
-                inset 0 1px 0 0 var(--glass-shine);
-        }
-
-        [data-theme='light'] .glass-effect {
-            background: rgba(255, 255, 255, 0.85);
-            border: 1px solid #e2e8f0;
-            box-shadow: 
-                0 4px 6px -1px rgba(0, 0, 0, 0.05), 
-                0 2px 4px -1px rgba(0, 0, 0, 0.03),
-                inset 0 1px 0 0 rgba(255, 255, 255, 1);
-        }
-
-        /* Input Styling */
-        input, select, textarea {
-            background-color: var(--bg-card) !important;
-            color: var(--text-primary) !important;
-            border: 1px solid var(--border-color) !important;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-            backdrop-filter: blur(10px);
-        }
+      /* --- MODERN SAAS ERP THEME TOKENS --- */
+      :root {
+        /* COSMIC SLATE (Default Dark) */
+        --bg-main: #090d16;
+        --bg-sidebar: rgba(13, 19, 33, 0.96);
+        --bg-card: rgba(18, 26, 43, 0.75);
+        --bg-card-hover: rgba(26, 37, 62, 0.9);
+        --border-color: rgba(255, 255, 255, 0.08);
+        --border-highlight: rgba(59, 130, 246, 0.6);
         
-        /* Placeholder color for Light Theme visibility */
-        [data-theme='light'] input::placeholder,
-        [data-theme='light'] select::placeholder,
-        [data-theme='light'] textarea::placeholder {
-            color: #94a3b8; /* Slate 400 */
-        }
-
-        input:focus, select:focus, textarea:focus {
-            border-color: var(--accent) !important;
-            outline: none;
-            box-shadow: 0 0 0 2px var(--accent-glow) !important;
-            background-color: var(--bg-card-hover) !important;
-        }
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+        --text-muted: #64748b;
         
-        /* Date Picker Icon */
-        input[type="date"]::-webkit-calendar-picker-indicator {
-            cursor: pointer;
-            opacity: 0.6;
-            filter: invert(1);
-        }
-        [data-theme='light'] input[type="date"]::-webkit-calendar-picker-indicator {
-            filter: invert(0);
-            opacity: 0.5;
-        }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent; 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--border-color); 
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--accent); 
-        }
+        --accent: #3b82f6;
+        --accent-hover: #2563eb;
+        --accent-glow: rgba(59, 130, 246, 0.35);
         
-        .text-glow {
-            text-shadow: 0 0 15px var(--accent-glow);
-        }
+        --glass-bg: linear-gradient(135deg, rgba(18, 26, 43, 0.85) 0%, rgba(13, 19, 33, 0.65) 100%);
+        --glass-border: rgba(255, 255, 255, 0.08);
+        --glass-shine: rgba(255, 255, 255, 0.05);
 
-        /* Loader */
-        #app-loader {
-            position: fixed;
-            inset: 0;
-            background: var(--bg-main);
-            background-image: radial-gradient(circle at center, var(--accent-glow) 0%, transparent 70%);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-primary);
-            transition: opacity 0.4s ease-out;
-        }
-        .loader-spinner {
-            width: 48px;
-            height: 48px;
-            border: 3px solid var(--border-color);
-            border-top: 3px solid var(--accent);
-            border-radius: 50%;
-            animation: spin 1s cubic-bezier(0.55, 0.055, 0.675, 0.19) infinite;
-            box-shadow: 0 0 20px var(--accent-glow);
-            margin-bottom: 1.5rem;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        --orb-1: rgba(59, 130, 246, 0.09);
+        --orb-2: rgba(139, 92, 246, 0.07);
+
+        color-scheme: dark;
+      }
+
+      [data-theme='midnight'] {
+        /* MIDNIGHT CYBER (Neon Indigo & Rose) */
+        --bg-main: #050713;
+        --bg-sidebar: rgba(9, 12, 30, 0.96);
+        --bg-card: rgba(17, 21, 50, 0.75);
+        --bg-card-hover: rgba(25, 31, 74, 0.9);
+        --border-color: rgba(99, 102, 241, 0.22);
+        --border-highlight: #a855f7;
+        
+        --text-primary: #e0e7ff;
+        --text-secondary: #818cf8;
+        --text-muted: #6366f1;
+        
+        --accent: #6366f1;
+        --accent-hover: #4f46e5;
+        --accent-glow: rgba(99, 102, 241, 0.45);
+        
+        --glass-bg: linear-gradient(135deg, rgba(17, 21, 50, 0.85) 0%, rgba(10, 13, 34, 0.65) 100%);
+        --glass-border: rgba(99, 102, 241, 0.25);
+        --glass-shine: rgba(165, 180, 252, 0.06);
+
+        --orb-1: rgba(99, 102, 241, 0.12);
+        --orb-2: rgba(236, 72, 153, 0.09);
+
+        color-scheme: dark;
+      }
+
+      [data-theme='forest'] {
+        /* FOREST EMERALD (Deep Jade & Mint) */
+        --bg-main: #030f0a;
+        --bg-sidebar: rgba(4, 23, 16, 0.96);
+        --bg-card: rgba(6, 36, 24, 0.75);
+        --bg-card-hover: rgba(9, 52, 36, 0.9);
+        --border-color: rgba(16, 185, 129, 0.2);
+        --border-highlight: #34d399;
+        
+        --text-primary: #ecfdf5;
+        --text-secondary: #6ee7b7;
+        --text-muted: #34d399;
+        
+        --accent: #10b981;
+        --accent-hover: #059669;
+        --accent-glow: rgba(16, 185, 129, 0.4);
+        
+        --glass-bg: linear-gradient(135deg, rgba(6, 36, 24, 0.85) 0%, rgba(3, 20, 14, 0.65) 100%);
+        --glass-border: rgba(16, 185, 129, 0.2);
+        --glass-shine: rgba(167, 243, 208, 0.06);
+
+        --orb-1: rgba(16, 185, 129, 0.12);
+        --orb-2: rgba(4, 120, 87, 0.08);
+
+        color-scheme: dark;
+      }
+
+      [data-theme='light'] {
+        /* PRO LIGHT SAAS */
+        --bg-main: #f8fafc;
+        --bg-sidebar: #ffffff;
+        --bg-card: #ffffff;
+        --bg-card-hover: #f1f5f9;
+        --border-color: #e2e8f0;
+        --border-highlight: #3b82f6;
+        
+        --text-primary: #0f172a;
+        --text-secondary: #64748b;
+        --text-muted: #94a3b8;
+        
+        --accent: #2563eb;
+        --accent-hover: #1d4ed8;
+        --accent-glow: rgba(37, 99, 235, 0.18);
+        
+        --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.92) 100%);
+        --glass-border: #e2e8f0;
+        --glass-shine: rgba(255, 255, 255, 0.9);
+
+        --orb-1: rgba(37, 99, 235, 0.04);
+        --orb-2: rgba(99, 102, 241, 0.03);
+
+        color-scheme: light;
+      }
+
+      /* Global Reset & Texture */
+      body {
+        background-color: var(--bg-main);
+        background-image: 
+          radial-gradient(circle at 15% 15%, var(--orb-1) 0%, transparent 45%),
+          radial-gradient(circle at 85% 85%, var(--orb-2) 0%, transparent 45%);
+        background-attachment: fixed;
+        color: var(--text-primary);
+        font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+
+      /* Glass Panels */
+      .glass-effect {
+        background: var(--glass-bg);
+        backdrop-filter: blur(24px) saturate(160%);
+        -webkit-backdrop-filter: blur(24px) saturate(160%);
+        border: 1px solid var(--glass-border);
+        box-shadow: 
+          0 10px 30px -10px rgba(0, 0, 0, 0.3),
+          inset 0 1px 0 0 var(--glass-shine);
+      }
+
+      [data-theme='light'] .glass-effect {
+        box-shadow: 
+          0 4px 20px -2px rgba(0, 0, 0, 0.05),
+          0 2px 6px -1px rgba(0, 0, 0, 0.02),
+          inset 0 1px 0 0 #ffffff;
+      }
+
+      /* Inputs - Clean Base with Focus Ring without breaking custom widths */
+      input, select, textarea {
+        background-color: var(--bg-card);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+      }
+
+      input:focus, select:focus, textarea:focus {
+        border-color: var(--accent);
+        outline: none;
+        box-shadow: 0 0 0 2px var(--accent-glow);
+        background-color: var(--bg-card-hover);
+      }
+
+      [data-theme='light'] input::placeholder,
+      [data-theme='light'] select::placeholder,
+      [data-theme='light'] textarea::placeholder {
+        color: #94a3b8;
+      }
+
+      /* Date Picker Indicator */
+      input[type="date"]::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+        opacity: 0.6;
+        filter: invert(1);
+      }
+      [data-theme='light'] input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(0);
+        opacity: 0.5;
+      }
+
+      /* Sleek Scrollbars */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 9999px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--accent);
+      }
+
+      .text-glow {
+        text-shadow: 0 0 20px var(--accent-glow);
+      }
+
+      /* Safe padding for modern mobile devices (notch & home bar) */
+      .safe-bottom {
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+      }
+
+      /* App Initializer Loader */
+      #app-loader {
+        position: fixed;
+        inset: 0;
+        background: var(--bg-main);
+        background-image: radial-gradient(circle at center, var(--accent-glow) 0%, transparent 70%);
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-primary);
+        transition: opacity 0.35s ease-out;
+      }
+      .loader-spinner {
+        width: 44px;
+        height: 44px;
+        border: 3px solid var(--border-color);
+        border-top: 3px solid var(--accent);
+        border-radius: 50%;
+        animation: spin 0.9s cubic-bezier(0.55, 0.055, 0.675, 0.19) infinite;
+        box-shadow: 0 0 24px var(--accent-glow);
+        margin-bottom: 1.25rem;
+      }
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "recharts": "https://esm.sh/recharts@^3.5.1",
-    "lucide-react": "https://esm.sh/lucide-react@^0.561.0",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react-dom": "https://esm.sh/react-dom@^19.2.3",
-    "react-virtuoso": "https://esm.sh/react-virtuoso@4.7.11",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.7"
-  }
-}
-</script>
-</head>
+  </head>
   <body class="antialiased overflow-hidden h-full text-sm selection:bg-[var(--accent)] selection:text-white">
     <div id="app-loader">
-        <div class="loader-spinner"></div>
-        <div style="font-size: 1.25rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">System Initializing</div>
-        <div style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.5rem; font-family: 'JetBrains Mono', monospace; opacity: 0.8;">ESTABLISHING CONNECTION...</div>
+      <div class="loader-spinner"></div>
+      <div style="font-size: 1.15rem; font-weight: 700; letter-spacing: 0.04em;">InventoryMate ERP</div>
+      <div style="color: var(--text-secondary); font-size: 0.72rem; margin-top: 0.4rem; font-family: 'JetBrains Mono', monospace; opacity: 0.85;">INITIALIZING WORKSPACE...</div>
     </div>
     <div id="root" class="h-full"></div>
     <script type="module" src="/index.tsx"></script>
     <script>
-        const observer = new MutationObserver((mutations) => {
-            if (document.getElementById('root').hasChildNodes()) {
-                const loader = document.getElementById('app-loader');
-                if (loader) {
-                    loader.style.opacity = '0';
-                    setTimeout(() => loader.remove(), 400);
-                }
-                observer.disconnect();
-            }
-        });
-        observer.observe(document.getElementById('root'), { childList: true, subtree: true });
+      const observer = new MutationObserver((mutations) => {
+        if (document.getElementById('root')?.hasChildNodes()) {
+          const loader = document.getElementById('app-loader');
+          if (loader) {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.remove(), 350);
+          }
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.getElementById('root'), { childList: true, subtree: true });
     </script>
   </body>
 </html>

@@ -1,80 +1,112 @@
-
 import React from 'react';
 import { Card } from '../components/ui/Card';
-import { LayoutDashboard, Truck, ShoppingCart, ClipboardList, CheckSquare, BarChart3, Database, Heart, Zap } from 'lucide-react';
+import { Badge } from '../components/ui/Badge';
+import { 
+  LayoutDashboard, Truck, ShoppingCart, ClipboardList, CheckSquare, 
+  BarChart3, Database, Heart, Zap, Layers, Sparkles, ShieldCheck 
+} from 'lucide-react';
 
 const About: React.FC = () => {
     return (
-        <div className="h-full overflow-y-auto custom-scrollbar p-4 md:p-6">
-            <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-fadeIn">
-                <div className="text-center space-y-4 pt-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-[var(--accent)] rounded-2xl mb-2 shadow-lg shadow-[var(--accent)]/20">
-                        <span className="text-2xl font-bold text-white">IM</span>
+        <div className="h-full overflow-y-auto p-4 sm:p-6 md:p-8 max-w-5xl mx-auto">
+            <div className="space-y-8 pb-20 animate-fadeIn">
+                
+                {/* Header Showcase */}
+                <div className="text-center space-y-3 pt-4 sm:pt-8">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[var(--accent)] to-purple-600 rounded-2xl mb-2 shadow-lg shadow-[var(--accent)]/25 text-white font-mono font-bold text-2xl">
+                        IM
                     </div>
-                    <h1 className="text-4xl font-bold text-white tracking-tight">InventoryMate ERP</h1>
-                    <p className="text-xl text-gray-400">A modern, efficient inventory management system.</p>
+                    <div className="flex items-center justify-center gap-2">
+                        <h1 className="text-3xl sm:text-4xl font-extrabold text-[var(--text-primary)] tracking-tight">
+                            InventoryMate ERP
+                        </h1>
+                        <Badge variant="blue" size="sm">v2.9 Pro</Badge>
+                    </div>
+                    <p className="text-sm sm:text-base text-[var(--text-secondary)] max-w-xl mx-auto font-medium">
+                        Next-generation dark-mode inventory ERP with FIFO batch tracking, weighted average valuation, and physical stock auditing.
+                    </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-                    <Card className="p-6 bg-[var(--bg-card)] border-[var(--border-color)] hover:border-blue-500/30 transition-colors group">
-                        <h3 className="text-lg font-bold text-blue-400 flex items-center gap-2 mb-3 group-hover:text-blue-300">
-                            <LayoutDashboard size={20} /> Dashboard
-                        </h3>
-                        <p className="text-gray-400 text-sm leading-relaxed">
-                            Your command center. Get a real-time overview of total inventory value, low stock alerts, pending tasks, and recent activity. Visual charts help track stock distribution and spending trends.
+                {/* Modules Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-6">
+                    <Card 
+                        className="hover:border-blue-500/40 transition-all" 
+                        hoverable
+                        headerIcon={<LayoutDashboard size={20} className="text-blue-400" />}
+                        title="Dashboard & KPIs"
+                        subtitle="Command center with real-time financial trajectory"
+                    >
+                        <p className="text-[var(--text-secondary)] text-xs sm:text-sm leading-relaxed">
+                            Live visibility into total inventory valuation, 6-month inflow vs outflow trends, category distribution donuts, and critical low-stock alerts.
                         </p>
                     </Card>
 
-                    <Card className="p-6 bg-[var(--bg-card)] border-[var(--border-color)] hover:border-green-500/30 transition-colors group">
-                        <h3 className="text-lg font-bold text-green-400 flex items-center gap-2 mb-3 group-hover:text-green-300">
-                            <Truck size={20} /> Purchase (Inward)
-                        </h3>
-                        <p className="text-gray-400 text-sm leading-relaxed">
-                            Record material receipts with detailed bill information including GST, freight, and vendor details. The system automatically calculates landed costs and updates the Weighted Average Price (WAP) for accurate valuation.
+                    <Card 
+                        className="hover:border-emerald-500/40 transition-all" 
+                        hoverable
+                        headerIcon={<Truck size={20} className="text-emerald-400" />}
+                        title="Purchase & Inward Bills"
+                        subtitle="Detailed landed cost & batch generation"
+                    >
+                        <p className="text-[var(--text-secondary)] text-xs sm:text-sm leading-relaxed">
+                            Record supplier bills with freight, GST, and discounts. Automatically computes item-level landed cost, assigns Unique Identification Numbers (UIN), and recalculates Weighted Average Price.
                         </p>
                     </Card>
 
-                    <Card className="p-6 bg-[var(--bg-card)] border-[var(--border-color)] hover:border-red-500/30 transition-colors group">
-                        <h3 className="text-lg font-bold text-red-400 flex items-center gap-2 mb-3 group-hover:text-red-300">
-                            <ShoppingCart size={20} /> Issue (Outward)
-                        </h3>
-                        <p className="text-gray-400 text-sm leading-relaxed">
-                            Issue materials to departments or machines. The system utilizes FIFO (First-In-First-Out) logic to track which specific purchase batches are being consumed, ensuring precise cost tracking.
+                    <Card 
+                        className="hover:border-rose-500/40 transition-all" 
+                        hoverable
+                        headerIcon={<ShoppingCart size={20} className="text-rose-400" />}
+                        title="Material Issuance (FIFO)"
+                        subtitle="Departmental consumption & cost tracking"
+                    >
+                        <p className="text-[var(--text-secondary)] text-xs sm:text-sm leading-relaxed">
+                            Issue materials directly to production departments or job orders. Strict FIFO (First-In, First-Out) logic depletes the oldest batches first for audit-ready valuation.
                         </p>
                     </Card>
 
-                     <Card className="p-6 bg-[var(--bg-card)] border-[var(--border-color)] hover:border-purple-400/30 transition-colors group">
-                        <h3 className="text-lg font-bold text-purple-400 flex items-center gap-2 mb-3 group-hover:text-purple-300">
-                            <ClipboardList size={20} /> Stock Register
-                        </h3>
-                        <p className="text-gray-400 text-sm leading-relaxed">
-                            The heart of the inventory. Switch between <strong>Summary View</strong> for weighted average valuation and <strong>Batches View</strong> for a detailed FIFO breakdown of every remaining purchase lot.
+                    <Card 
+                        className="hover:border-purple-500/40 transition-all" 
+                        hoverable
+                        headerIcon={<ClipboardList size={20} className="text-purple-400" />}
+                        title="Live Stock Register"
+                        subtitle="Dual-mode: Aggregate Summary & Batch Breakdown"
+                    >
+                        <p className="text-[var(--text-secondary)] text-xs sm:text-sm leading-relaxed">
+                            High-density virtualized data tables powered by TableVirtuoso. Toggle between aggregate SKU valuation and individual remaining batch lots with sparkline price trends.
                         </p>
                     </Card>
 
-                     <Card className="p-6 bg-[var(--bg-card)] border-[var(--border-color)] hover:border-yellow-400/30 transition-colors group">
-                        <h3 className="text-lg font-bold text-yellow-400 flex items-center gap-2 mb-3 group-hover:text-yellow-300">
-                            <CheckSquare size={20} /> Stock Taking
-                        </h3>
-                        <p className="text-gray-400 text-sm leading-relaxed">
-                            Perform physical stock verification effortlessly. The app highlights items pending verification in the current cycle (Daily/Weekly/Monthly) and allows for quick adjustments to match system stock with reality.
+                    <Card 
+                        className="hover:border-amber-500/40 transition-all" 
+                        hoverable
+                        headerIcon={<ShieldCheck size={20} className="text-amber-400" />}
+                        title="Physical Stock Audit"
+                        subtitle="Cycle counts & reconciliation"
+                    >
+                        <p className="text-[var(--text-secondary)] text-xs sm:text-sm leading-relaxed">
+                            Daily verification queue of active items that have recent issues. 1-tap verification checkmark, variance adjustment slips, and historical audit trail.
                         </p>
                     </Card>
 
-                     <Card className="p-6 bg-[var(--bg-card)] border-[var(--border-color)] hover:border-pink-400/30 transition-colors group">
-                        <h3 className="text-lg font-bold text-pink-400 flex items-center gap-2 mb-3 group-hover:text-pink-300">
-                            <BarChart3 size={20} /> Reports
-                        </h3>
-                        <p className="text-gray-400 text-sm leading-relaxed">
-                            Generate comprehensive reports for Opening Stock, Purchase, Issue, and Closing Stock. Build custom filtered reports or export data to CSV for external analysis.
+                    <Card 
+                        className="hover:border-pink-500/40 transition-all" 
+                        hoverable
+                        headerIcon={<BarChart3 size={20} className="text-pink-400" />}
+                        title="Reports & Analytics"
+                        subtitle="Custom filters & CSV data export"
+                    >
+                        <p className="text-[var(--text-secondary)] text-xs sm:text-sm leading-relaxed">
+                            Generate comprehensive reports for Opening Stock, Receipts, Issues, and Closing Stock with flexible date range filters and instant spreadsheet exports.
                         </p>
                     </Card>
                 </div>
 
-                <div className="pt-16 pb-8 text-center">
-                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--bg-card)] border border-[var(--border-color)] text-gray-500 text-sm font-medium hover:border-[var(--accent)]/50 hover:text-[var(--accent)] transition-all cursor-default">
-                        <Zap size={16} className="fill-current" /> 
-                        Vibe coded and designed by Chetan Luthra
+                {/* Creator Attribution */}
+                <div className="pt-8 text-center">
+                    <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs font-semibold hover:border-[var(--accent)] hover:text-[var(--text-primary)] transition-all cursor-default shadow-sm">
+                        <Zap size={14} className="text-[var(--accent)]" />
+                        Designed & Coded with passion by Chetan Luthra
                     </div>
                 </div>
             </div>

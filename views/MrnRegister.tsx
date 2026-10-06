@@ -55,15 +55,20 @@ const getValue = (t: Transaction, key: string, materials: any[]): string => {
 const MrnRegister: React.FC<Props> = ({ data, onUpdate }) => {
     const [startDate, setStartDate] = useState(() => {
         const now = new Date();
-        return new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1)).toISOString().split('T')[0];
+        return new Date(Date.UTC(now.getFullYear() - 1, 0, 1)).toISOString().split('T')[0];
     });
     const [endDate, setEndDate] = useState(() => {
         const now = new Date();
-        return new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0)).toISOString().split('T')[0];
+        return new Date(Date.UTC(now.getFullYear(), 11, 31)).toISOString().split('T')[0];
     });
 
     const [tabMode, setTabMode] = useState<'ITEMS' | 'BILLS'>('ITEMS'); 
-    const [viewMode, setViewMode] = useState<'TABLE' | 'CARD'>('TABLE');
+    const [viewMode, setViewMode] = useState<'TABLE' | 'CARD'>(() => {
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+            return 'CARD';
+        }
+        return 'TABLE';
+    });
     
     const [rawSearch, setRawSearch] = useState('');
     const [globalSearch, setGlobalSearch] = useState('');
@@ -354,24 +359,24 @@ const MrnRegister: React.FC<Props> = ({ data, onUpdate }) => {
                 <div className="flex flex-col md:flex-row gap-2 w-full lg:w-auto">
                     {/* View Switcher (Item/Bill) */}
                     <div className="flex bg-[var(--bg-card)] p-1 rounded-lg border border-[var(--border-color)]">
-                        <button onClick={() => setTabMode('ITEMS')} className={`px-3 py-1.5 text-xs font-bold rounded flex items-center gap-2 transition-all ${tabMode === 'ITEMS' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>
+                        <button onClick={() => setTabMode('ITEMS')} className={`px-3 py-1.5 text-xs font-bold rounded flex items-center gap-2 transition-all ${tabMode === 'ITEMS' ? 'bg-blue-600 text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
                             <List size={14}/> Items
                         </button>
-                        <button onClick={() => setTabMode('BILLS')} className={`px-3 py-1.5 text-xs font-bold rounded flex items-center gap-2 transition-all ${tabMode === 'BILLS' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}>
+                        <button onClick={() => setTabMode('BILLS')} className={`px-3 py-1.5 text-xs font-bold rounded flex items-center gap-2 transition-all ${tabMode === 'BILLS' ? 'bg-blue-600 text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
                             <Receipt size={14}/> Bills
                         </button>
                     </div>
 
                     {/* Date Filters & Month Selector */}
-                    <div className="flex items-center gap-2 bg-[var(--bg-card)] border border-[var(--border-color)] p-1.5 rounded-lg w-full md:w-auto">
-                        <Calendar size={14} className="text-gray-500 ml-1"/>
-                        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-[var(--bg-main)] text-[var(--text-primary)] text-xs font-bold border border-[var(--border-color)] rounded px-1 w-28 p-1"/>
-                        <span className="text-gray-600">-</span>
-                        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-[var(--bg-main)] text-[var(--text-primary)] text-xs font-bold border border-[var(--border-color)] rounded px-1 w-28 p-1"/>
+                    <div className="flex items-center gap-2 bg-[var(--bg-card)] border border-[var(--border-color)] p-1.5 rounded-lg w-full md:w-auto flex-wrap">
+                        <Calendar size={14} className="text-[var(--text-secondary)] ml-1"/>
+                        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-[var(--bg-main)] text-[var(--text-primary)] text-xs font-bold border border-[var(--border-color)] rounded px-1.5 py-1 w-28"/>
+                        <span className="text-[var(--text-secondary)]">-</span>
+                        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-[var(--bg-main)] text-[var(--text-primary)] text-xs font-bold border border-[var(--border-color)] rounded px-1.5 py-1 w-28"/>
                         
                         <select 
                             onChange={handleMonthSelect}
-                            className="bg-[var(--bg-main)] text-[var(--text-primary)] text-xs border border-[var(--border-color)] rounded p-1 ml-2 cursor-pointer focus:outline-none focus:border-[var(--accent)]"
+                            className="bg-[var(--bg-main)] text-[var(--text-primary)] text-xs border border-[var(--border-color)] rounded px-2 py-1 ml-1 cursor-pointer focus:outline-none focus:border-[var(--accent)]"
                             defaultValue=""
                         >
                             <option value="" disabled>Select Month</option>
@@ -385,17 +390,17 @@ const MrnRegister: React.FC<Props> = ({ data, onUpdate }) => {
 
                     <div className="flex gap-2 w-full md:w-auto">
                         <div className="relative flex-1 md:w-48">
-                            <Search className="absolute left-3 top-2.5 text-gray-500" size={14}/>
-                            <input type="text" placeholder="Search..." value={rawSearch} onChange={e => setRawSearch(e.target.value)} className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg pl-9 pr-4 py-2 text-xs md:text-sm text-[var(--text-primary)] focus:outline-none focus:border-blue-500"/>
+                            <Search className="absolute left-3 top-2.5 text-[var(--text-secondary)]" size={14}/>
+                            <input type="text" placeholder="Search..." value={rawSearch} onChange={e => setRawSearch(e.target.value)} className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg pl-9 pr-4 py-2 text-xs md:text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"/>
                         </div>
                         {tabMode === 'ITEMS' && (
                             <div className="flex bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-0.5">
-                                <button onClick={() => setViewMode('TABLE')} className={`p-1.5 rounded ${viewMode === 'TABLE' ? 'bg-[var(--accent)] text-white' : 'text-gray-400 hover:text-white'}`}><List size={16}/></button>
-                                <button onClick={() => setViewMode('CARD')} className={`p-1.5 rounded ${viewMode === 'CARD' ? 'bg-[var(--accent)] text-white' : 'text-gray-400 hover:text-white'}`}><LayoutGrid size={16}/></button>
+                                <button onClick={() => setViewMode('TABLE')} className={`p-1.5 rounded transition-colors ${viewMode === 'TABLE' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`} title="Table View"><List size={16}/></button>
+                                <button onClick={() => setViewMode('CARD')} className={`p-1.5 rounded transition-colors ${viewMode === 'CARD' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`} title="Card View"><LayoutGrid size={16}/></button>
                             </div>
                         )}
                         <div className="relative">
-                            <Button variant="secondary" onClick={(e) => { e.stopPropagation(); setIsColSelectorOpen(!isColSelectorOpen); }} className="px-2 h-full"><SlidersHorizontal size={16} /></Button>
+                            <Button variant="secondary" onClick={(e) => { e.stopPropagation(); setIsColSelectorOpen(!isColSelectorOpen); }} className="px-2 h-full text-[var(--text-primary)]"><SlidersHorizontal size={16} /></Button>
                             {isColSelectorOpen && (
                                 <div className="absolute right-0 top-full mt-2 w-48 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto">
                                     <div className="text-xs font-bold text-[var(--text-secondary)] uppercase px-2 mb-2">Visible Columns</div>
@@ -403,7 +408,7 @@ const MrnRegister: React.FC<Props> = ({ data, onUpdate }) => {
                                 </div>
                             )}
                         </div>
-                        <button onClick={() => setShowMobileFilters(!showMobileFilters)} className={`md:hidden p-2 rounded-lg border ${Object.keys(activeFilters).length > 0 ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-gray-400'}`}><Filter size={16} /></button>
+                        <button onClick={() => setShowMobileFilters(!showMobileFilters)} className={`md:hidden p-2 rounded-lg border transition-colors ${Object.keys(activeFilters).length > 0 ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}><Filter size={16} /></button>
                         <Button onClick={handleExport} variant="success" className="whitespace-nowrap flex items-center gap-2 text-xs px-3"><Download size={14}/> <span className="hidden md:inline">CSV</span></Button>
                     </div>
                 </div>

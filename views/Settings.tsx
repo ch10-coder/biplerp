@@ -218,13 +218,13 @@ const Settings: React.FC<Props> = ({ data, onRestore }) => {
     };
 
     return (
-        <div className="h-full overflow-y-auto custom-scrollbar p-4 md:p-6">
+        <div className="p-4 md:p-6 pb-24">
             <div className="max-w-6xl mx-auto space-y-6 relative pb-20 animate-fadeIn">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <h2 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-2">
-                            <Settings2 className="text-gray-400" /> App Configuration
+                            <Settings2 className="text-[var(--accent)]" /> App Configuration
                         </h2>
                         <p className="text-[var(--text-secondary)] text-sm mt-1">Manage profile, essentials, and system preferences.</p>
                     </div>
@@ -245,13 +245,13 @@ const Settings: React.FC<Props> = ({ data, onRestore }) => {
 
                 {/* TABS */}
                 <div className="flex border-b border-[var(--border-color)] space-x-1">
-                    <button onClick={() => setActiveTab('GENERAL')} className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'GENERAL' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-gray-500 hover:text-white'}`}>
+                    <button onClick={() => setActiveTab('GENERAL')} className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'GENERAL' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
                         <Building size={16} /> General
                     </button>
-                    <button onClick={() => setActiveTab('ESSENTIALS')} className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'ESSENTIALS' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-gray-500 hover:text-white'}`}>
+                    <button onClick={() => setActiveTab('ESSENTIALS')} className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'ESSENTIALS' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
                         <ListChecks size={16} /> Essentials
                     </button>
-                    <button onClick={() => setActiveTab('SYSTEM')} className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'SYSTEM' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-gray-500 hover:text-white'}`}>
+                    <button onClick={() => setActiveTab('SYSTEM')} className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'SYSTEM' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
                         <Monitor size={16} /> System
                     </button>
                 </div>

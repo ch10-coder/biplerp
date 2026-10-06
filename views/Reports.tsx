@@ -780,33 +780,33 @@ const Reports: React.FC<Props> = ({ data, onUpdate }) => {
         const isBalanced = diff < 1.0; 
 
         return (
-            <div className="h-full overflow-y-auto custom-scrollbar p-4 space-y-4" onClick={() => setShowExportMenu(false)}>
+            <div className="p-4 space-y-4 pb-24" onClick={() => setShowExportMenu(false)}>
                 {/* Header & Filters */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center shrink-0 gap-4">
-                    <div><h2 className="text-2xl font-bold text-[var(--text-primary)]">Financial Reports</h2><p className="text-gray-400 text-xs">Inventory valuation and transaction summary.</p></div>
+                    <div><h2 className="text-2xl font-bold text-[var(--text-primary)]">Financial Reports</h2><p className="text-[var(--text-secondary)] text-xs">Inventory valuation and transaction summary.</p></div>
                      
                      <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
-                        <div className="bg-[var(--bg-card)] p-1 rounded-lg border border-[var(--border-color)] flex gap-2 self-start">
-                            <select value={periodMode} onChange={(e: any) => setPeriodMode(e.target.value)} className="bg-[var(--bg-main)] text-white text-xs border-none rounded focus:ring-0"><option value="MONTH">Monthly</option><option value="RANGE">Custom Range</option></select>
-                            {periodMode === 'MONTH' ? (<><select value={month} onChange={(e: any) => setMonth(parseInt(e.target.value))} className="bg-[var(--bg-main)] text-white text-xs border-none rounded focus:ring-0">{Array.from({length: 12}, (_, i) => i).map(m => <option key={m} value={m}>{new Date(0, m).toLocaleString('default', { month: 'short' })}</option>)}</select><select value={year} onChange={(e: any) => setYear(parseInt(e.target.value))} className="bg-[var(--bg-main)] text-white text-xs border-none rounded focus:ring-0">{Array.from({length: 5}, (_, i) => new Date().getFullYear() - 2 + i).map(y => <option key={y} value={y}>{y}</option>)}</select></>) : (<><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-[var(--bg-main)] text-white text-xs border-none rounded focus:ring-0 w-24"/><span className="text-gray-500 self-center">-</span><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-[var(--bg-main)] text-white text-xs border-none rounded focus:ring-0 w-24"/></>)}
+                        <div className="bg-[var(--bg-card)] p-1 rounded-lg border border-[var(--border-color)] flex gap-2 self-start flex-wrap">
+                            <select value={periodMode} onChange={(e: any) => setPeriodMode(e.target.value)} className="bg-[var(--bg-main)] text-[var(--text-primary)] text-xs border border-[var(--border-color)] rounded px-2 py-1.5 focus:ring-1 focus:ring-[var(--accent)]"><option value="MONTH">Monthly</option><option value="RANGE">Custom Range</option></select>
+                            {periodMode === 'MONTH' ? (<><select value={month} onChange={(e: any) => setMonth(parseInt(e.target.value))} className="bg-[var(--bg-main)] text-[var(--text-primary)] text-xs border border-[var(--border-color)] rounded px-2 py-1.5 focus:ring-1 focus:ring-[var(--accent)]">{Array.from({length: 12}, (_, i) => i).map(m => <option key={m} value={m}>{new Date(0, m).toLocaleString('default', { month: 'short' })}</option>)}</select><select value={year} onChange={(e: any) => setYear(parseInt(e.target.value))} className="bg-[var(--bg-main)] text-[var(--text-primary)] text-xs border border-[var(--border-color)] rounded px-2 py-1.5 focus:ring-1 focus:ring-[var(--accent)]">{Array.from({length: 5}, (_, i) => new Date().getFullYear() - 2 + i).map(y => <option key={y} value={y}>{y}</option>)}</select></>) : (<><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="bg-[var(--bg-main)] text-[var(--text-primary)] text-xs border border-[var(--border-color)] rounded px-2 py-1.5 focus:ring-1 focus:ring-[var(--accent)] w-28"/><span className="text-[var(--text-secondary)] self-center">-</span><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-[var(--bg-main)] text-[var(--text-primary)] text-xs border border-[var(--border-color)] rounded px-2 py-1.5 focus:ring-1 focus:ring-[var(--accent)] w-28"/></>)}
                         </div>
 
-                        <Button onClick={() => handleOpenDetail('FULL_LEDGER')} variant="secondary" className="text-xs py-1 px-3 h-full flex items-center gap-2 border-blue-500/50 text-blue-400 hover:bg-blue-900/20">
+                        <Button onClick={() => handleOpenDetail('FULL_LEDGER')} variant="secondary" className="text-xs py-1.5 px-3 h-full flex items-center gap-2 border-blue-500/50 text-blue-400 hover:bg-blue-900/20">
                             <Table size={14}/> View Ledger
                         </Button>
 
                         <div className="relative">
-                            <Button onClick={(e) => { e.stopPropagation(); setShowExportMenu(!setShowExportMenu); }} variant="primary" className="text-xs py-1 px-3 h-full flex items-center gap-2 shadow-lg shadow-blue-500/20">
+                            <Button onClick={(e) => { e.stopPropagation(); setShowExportMenu(!showExportMenu); }} variant="primary" className="text-xs py-1.5 px-3 h-full flex items-center gap-2 shadow-lg shadow-blue-500/20">
                                 <Download size={14}/> Export Data
                             </Button>
                             {showExportMenu && (
-                                <div className="absolute right-0 top-full mt-2 w-64 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-2xl z-[100] overflow-hidden animate-fadeIn ring-1 ring-white/10">
-                                    <div className="p-3 border-b border-[var(--border-color)] bg-[var(--bg-main)]/50">
+                                <div className="absolute right-0 top-full mt-2 w-64 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl z-[100] overflow-hidden animate-fadeIn ring-1 ring-[var(--border-color)]">
+                                    <div className="p-3 border-b border-[var(--border-color)] bg-[var(--bg-main)]">
                                         <h4 className="text-xs font-bold text-[var(--text-secondary)] uppercase">Export Options</h4>
                                     </div>
                                     <button onClick={handleExportFullAnalysis} className="w-full text-left px-4 py-3 text-xs text-green-400 hover:bg-[var(--bg-main)] transition-colors">
                                         <div className="font-bold flex items-center gap-2"><FileText size={12}/> Full Ledger Analysis</div>
-                                        <div className="text-[10px] text-green-500/50 mt-0.5">FIFO Batch Wise (In/Out/Bal)</div>
+                                        <div className="text-[10px] text-green-500/70 mt-0.5">FIFO Batch Wise (In/Out/Bal)</div>
                                     </button>
                                 </div>
                             )}
@@ -894,7 +894,7 @@ const Reports: React.FC<Props> = ({ data, onUpdate }) => {
                 {/* Breakdown Table */}
                 <div className="relative border border-[var(--border-color)] bg-[var(--bg-card)] rounded-xl overflow-hidden glass-effect shadow-inner flex flex-col min-h-[600px]">
                      <div className="p-3 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--bg-main)] shrink-0 z-20">
-                         <div className="flex items-center gap-2"><h3 className="text-sm font-bold text-[var(--text-primary)]">Breakdown</h3><div className="flex bg-[var(--bg-card)] rounded p-0.5 border border-[var(--border-color)]"><button onClick={() => setGroupBy('GROUP')} className={`text-[10px] px-2 py-0.5 rounded transition-all ${groupBy === 'GROUP' ? 'bg-[var(--accent)] text-white' : 'text-gray-400 hover:text-white'}`}>Group</button><button onClick={() => setGroupBy('DEPARTMENT')} className={`text-[10px] px-2 py-0.5 rounded transition-all ${groupBy === 'DEPARTMENT' ? 'bg-[var(--accent)] text-white' : 'text-gray-400 hover:text-white'}`}>Dept</button></div></div>
+                         <div className="flex items-center gap-2"><h3 className="text-sm font-bold text-[var(--text-primary)]">Breakdown</h3><div className="flex bg-[var(--bg-card)] rounded p-0.5 border border-[var(--border-color)]"><button onClick={() => setGroupBy('GROUP')} className={`text-[10px] px-2.5 py-1 rounded transition-all font-medium ${groupBy === 'GROUP' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>Group</button><button onClick={() => setGroupBy('DEPARTMENT')} className={`text-[10px] px-2.5 py-1 rounded transition-all font-medium ${groupBy === 'DEPARTMENT' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>Dept</button></div></div>
                      </div>
                      <div className="flex-1 overflow-auto custom-scrollbar p-0">
                         <table className="w-full text-left text-sm text-[var(--text-secondary)] whitespace-nowrap">
@@ -973,7 +973,7 @@ const Reports: React.FC<Props> = ({ data, onUpdate }) => {
                         <div className="bg-[var(--bg-card)] w-full max-w-4xl rounded-2xl border border-[var(--border-color)] shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
                             <div className="p-4 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--bg-main)]">
                                 <h3 className="text-lg font-bold text-[var(--text-primary)]">{drilldownData.title}</h3>
-                                <button onClick={() => setDrilldownData(null)} className="text-gray-400 hover:text-white p-2 rounded-full hover:bg-[var(--bg-card)]"><X size={20}/></button>
+                                <button onClick={() => setDrilldownData(null)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-2 rounded-full hover:bg-[var(--bg-card)] transition-colors"><X size={20}/></button>
                             </div>
                             <div className="flex-1 overflow-auto custom-scrollbar p-0">
                                 <table className="w-full text-left text-xs text-[var(--text-secondary)]">
@@ -1004,7 +1004,7 @@ const Reports: React.FC<Props> = ({ data, onUpdate }) => {
                                             <tr key={i} className="hover:bg-[var(--bg-card-hover)]">
                                                 {drilldownData.type === 'MISMATCH' ? (
                                                     <>
-                                                        <td className="p-3 font-medium text-white">{t.materialName}</td>
+                                                        <td className="p-3 font-medium text-[var(--text-primary)]">{t.materialName}</td>
                                                         <td className="p-3 font-mono text-gray-400 text-[10px]">{t.billNo}</td>
                                                         <td className="p-3 text-right font-bold text-red-400">{typeof t.value === 'number' ? t.value.toLocaleString(undefined, {minimumFractionDigits: 2}) : t.value}</td>
                                                         <td className="p-3 text-center">
@@ -1027,8 +1027,8 @@ const Reports: React.FC<Props> = ({ data, onUpdate }) => {
                                                         </td>
                                                         <td className="p-3 font-mono text-blue-300">{t.billNo || (t.id ? t.id.slice(-6) : '-')}</td>
                                                         <td className="p-3">{t.vendor || t.department}</td>
-                                                        <td className="p-3 font-medium text-white">{t.materialName || t.name}</td>
-                                                        <td className="p-3 text-right text-white">{t.qty || t.quantity}</td>
+                                                        <td className="p-3 font-medium text-[var(--text-primary)]">{t.materialName || t.name}</td>
+                                                        <td className="p-3 text-right text-[var(--text-primary)]">{t.qty || t.quantity}</td>
                                                         <td className="p-3 text-right">{typeof t.rate === 'number' ? t.rate.toFixed(4) : '-'}</td>
                                                         <td className="p-3 text-right font-bold text-green-400">{(t.value || t.totalValue || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                                     </>
@@ -1066,7 +1066,7 @@ const Reports: React.FC<Props> = ({ data, onUpdate }) => {
     const currentDef = COLUMNS_DEF[activeDefKey] || [];
 
     return (
-        <div className="h-full flex flex-col p-4 space-y-4" onClick={(e) => { 
+        <div className="min-h-[85vh] flex flex-col p-4 space-y-4 pb-24" onClick={(e) => { 
             const target = e.target as HTMLElement;
             // Only close if we didn't click a filter trigger or dropdown
             if (!target.closest('.filter-trigger-area') && !target.closest('.portal-dropdown-content')) {
@@ -1076,11 +1076,11 @@ const Reports: React.FC<Props> = ({ data, onUpdate }) => {
         }}>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center shrink-0 gap-4">
                 <div className="flex items-center gap-2">
-                    <Button variant="secondary" onClick={() => setDetailView(null)} className="p-2 h-9 w-9 flex items-center justify-center rounded-lg"><ChevronRight className="rotate-180" size={16}/></Button>
+                    <Button variant="secondary" onClick={() => setDetailView(null)} className="p-2 h-9 w-9 flex items-center justify-center rounded-lg text-[var(--text-primary)] hover:border-[var(--accent)]" title="Back to Overview"><ChevronRight className="rotate-180" size={18}/></Button>
                     <div>
                         <h2 className="text-xl font-bold text-[var(--text-primary)]">{detailView === 'FULL_LEDGER' ? 'Full Ledger Analysis' : `${detailView} Detail`}</h2>
-                        <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">
-                            {periodMode === 'MONTH' ? new Date(0, month).toLocaleString('default', { month: 'long', year: 'numeric' }) : `${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`}
+                        <div className="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest font-bold">
+                            {periodMode === 'MONTH' ? new Date(year, month).toLocaleString('default', { month: 'long', year: 'numeric' }) : `${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`}
                         </div>
                     </div>
                 </div>
@@ -1088,19 +1088,19 @@ const Reports: React.FC<Props> = ({ data, onUpdate }) => {
                  <div className="flex gap-2 w-full md:w-auto">
                     <button 
                         onClick={() => setIsFullWidth(!isFullWidth)} 
-                        className={`hidden lg:flex p-2 rounded-lg border transition-all h-9 w-9 items-center justify-center ${isFullWidth ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-gray-400 hover:text-white'}`}
+                        className={`hidden lg:flex p-2 rounded-lg border transition-all h-9 w-9 items-center justify-center ${isFullWidth ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                         title={isFullWidth ? "Standard View" : "Full Sheet View"}
                     >
                         {isFullWidth ? <Minimize2 size={16}/> : <Maximize2 size={16}/>}
                     </button>
 
                     <div className="relative flex-1 md:w-64">
-                        <Search className="absolute left-3 top-2.5 text-gray-500" size={14}/>
+                        <Search className="absolute left-3 top-2.5 text-[var(--text-secondary)]" size={14}/>
                         <input type="text" placeholder="Quick search..." value={modalSearchTerm} onChange={e => setModalSearchTerm(e.target.value)} className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg pl-9 pr-2 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"/>
                     </div>
                     
                     <div className="relative" onClick={e => e.stopPropagation()}>
-                        <Button variant="secondary" onClick={() => setIsColSelectorOpen(!isColSelectorOpen)} className="p-2 h-9 w-9 flex items-center justify-center rounded-lg">
+                        <Button variant="secondary" onClick={() => setIsColSelectorOpen(!isColSelectorOpen)} className="p-2 h-9 w-9 flex items-center justify-center rounded-lg text-[var(--text-primary)]" title="Column Selector">
                             <SlidersHorizontal size={16}/>
                         </Button>
                         {isColSelectorOpen && (
@@ -1129,8 +1129,8 @@ const Reports: React.FC<Props> = ({ data, onUpdate }) => {
                     <div className="flex justify-between items-center mb-2"><h4 className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">Applied Rules</h4><button onClick={clearFilters} className="text-[10px] uppercase font-bold text-red-400 hover:text-red-300">Clear All</button></div>
                     <div className="flex flex-wrap gap-2">
                         {customFilters.map((f, i) => (
-                            <span key={i} className="bg-[var(--bg-main)] border border-[var(--border-color)] text-[10px] text-white px-2 py-1 rounded flex items-center gap-2">
-                                <span className="text-gray-500 font-bold uppercase">{FILTER_FIELDS.find(ff=>ff.value===f.field)?.label}:</span> {f.operator} '{f.value}'
+                            <span key={i} className="bg-[var(--bg-main)] border border-[var(--border-color)] text-[10px] text-[var(--text-primary)] px-2.5 py-1 rounded-md flex items-center gap-2">
+                                <span className="text-[var(--text-secondary)] font-bold uppercase">{FILTER_FIELDS.find(ff=>ff.value===f.field)?.label}:</span> {f.operator} '{f.value}'
                                 <X size={10} className="cursor-pointer hover:text-red-400" onClick={() => removeFilter(i)}/>
                             </span>
                         ))}
@@ -1193,17 +1193,17 @@ const Reports: React.FC<Props> = ({ data, onUpdate }) => {
                                         if (colId === 'mrn') specialClass = 'text-yellow-500 font-mono font-medium';
 
                                         return (
-                                            <td key={colId} className={`p-2 px-3 border-r border-[var(--border-color)] truncate group-hover:bg-[var(--accent)]/5 ${def?.isRight ? 'text-right font-mono' : ''} ${colId === 'name' || colId === 'matName' ? 'text-white font-medium' : ''} ${specialClass}`} style={{width: def?.width}}>
+                                            <td key={colId} className={`p-2 px-3 border-r border-[var(--border-color)] truncate group-hover:bg-[var(--accent)]/5 ${def?.isRight ? 'text-right font-mono' : ''} ${colId === 'name' || colId === 'matName' ? 'text-[var(--text-primary)] font-medium' : ''} ${specialClass}`} style={{width: def?.width}}>
                                                 {val}
                                             </td> 
                                         );
                                     })}
                                 </tr>
                             ))} 
-                            {currentRows.length === 0 && <tr><td colSpan={visibleColumns.length} className="p-10 text-center text-gray-500 italic">No records match the current filters.</td></tr>}
+                            {currentRows.length === 0 && <tr><td colSpan={visibleColumns.length} className="p-10 text-center text-[var(--text-secondary)] italic">No records match the current filters.</td></tr>}
                         </tbody>
                         {currentRows.length > 0 && (
-                            <tfoot className="bg-[var(--bg-main)] text-white font-bold sticky bottom-0 z-40 border-t-2 border-[var(--border-color)] shadow-2xl">
+                            <tfoot className="bg-[var(--bg-main)] text-[var(--text-primary)] font-bold sticky bottom-0 z-40 border-t-2 border-[var(--border-color)] shadow-2xl">
                                 <tr>
                                     {visibleColumns.map((colId, index) => { 
                                         const def = currentDef.find(c => c.id === colId);
