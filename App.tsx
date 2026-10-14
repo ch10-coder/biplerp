@@ -47,23 +47,8 @@ const THEMES = [
   { id: 'light', label: 'Classic SaaS', icon: Sun },
 ] as const;
 
-const MOCK_LOCAL_SESSION = { user: { email: 'admin@local.test', id: 'local-test-admin' } };
-
 const App = () => {
-  // Auto-detect if user wants bypass or is on local dev preview
-  const [session, setSession] = useState<any>(() => {
-    if (typeof window !== 'undefined') {
-      if (localStorage.getItem('erp_bypass_auth') === 'true') {
-        return MOCK_LOCAL_SESSION;
-      }
-      // Auto-bypass on localhost / 127.0.0.1 for instant local preview
-      if ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
-          localStorage.getItem('erp_auth_explicit_logout') !== 'true') {
-        return MOCK_LOCAL_SESSION;
-      }
-    }
-    return null;
-  });
+  const [session, setSession] = useState<any>(null);
 
   const [currentView, setCurrentView] = useState<ViewName>('DASHBOARD');
   const [data, setData] = useState<AppData | null>(null);
@@ -88,13 +73,10 @@ const App = () => {
 
   // --- Auth Check ---
   useEffect(() => {
-    const isBypassActive = localStorage.getItem('erp_bypass_auth') === 'true' || 
-      ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && 
-       localStorage.getItem('erp_auth_explicit_logout') !== 'true');
-
-    if (isBypassActive) {
-      if (!session) setSession(MOCK_LOCAL_SESSION);
-      return;
+    // Clear any residual bypass keys
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('erp_bypass_auth');
+      localStorage.removeItem('erp_auth_explicit_logout');
     }
 
     if (supabase) {
@@ -181,7 +163,7 @@ const App = () => {
 
   const handleLogout = async () => {
     localStorage.removeItem('erp_bypass_auth');
-    localStorage.setItem('erp_auth_explicit_logout', 'true');
+    localStorage.removeItem('erp_auth_explicit_logout');
     if (supabase) {
       try { await supabase.auth.signOut(); } catch (_) {}
     }
@@ -247,8 +229,11 @@ const App = () => {
   if (!session) {
     return (
       <Login 
-        onLoginSuccess={() => {
-          setSession(MOCK_LOCAL_SESSION);
+        onLoginSuccess={async () => {
+          if (supabase) {
+            const { data } = await supabase.auth.getSession();
+            if (data.session) setSession(data.session);
+          }
           refreshData();
         }} 
       />

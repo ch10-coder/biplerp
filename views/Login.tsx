@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { supabase, saveSupabaseConfig, SUPABASE_URL_KEY, SUPABASE_KEY_KEY } from '../services/supabaseClient';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { Database, LogIn, Key, Globe, AlertCircle, ShieldCheck, Sparkles, Zap } from 'lucide-react';
+import { Database, LogIn, Key, Globe, AlertCircle } from 'lucide-react';
 
 interface Props {
     onLoginSuccess: () => void;
@@ -35,15 +35,8 @@ const Login: React.FC<Props> = ({ onLoginSuccess }) => {
             setError(error.message);
             setLoading(false);
         } else {
-            localStorage.removeItem('erp_auth_explicit_logout');
             onLoginSuccess();
         }
-    };
-
-    const handleBypass = () => {
-        localStorage.setItem('erp_bypass_auth', 'true');
-        localStorage.removeItem('erp_auth_explicit_logout');
-        onLoginSuccess();
     };
 
     const handleSaveConfig = () => {
@@ -158,28 +151,6 @@ const Login: React.FC<Props> = ({ onLoginSuccess }) => {
                                 Sign In with Supabase
                             </Button>
 
-                            {/* Local Bypass Option */}
-                            <div className="pt-2">
-                                <div className="relative my-3">
-                                    <div className="absolute inset-0 flex items-center">
-                                        <div className="w-full border-t border-[var(--border-color)]"></div>
-                                    </div>
-                                    <div className="relative flex justify-center text-xs">
-                                        <span className="bg-[var(--bg-card)] px-2 text-[var(--text-secondary)] font-medium">Quick Preview</span>
-                                    </div>
-                                </div>
-
-                                <Button 
-                                    type="button"
-                                    variant="secondary" 
-                                    onClick={handleBypass}
-                                    className="w-full border-dashed border-[var(--accent)]/50 text-[var(--accent)] hover:bg-[var(--accent)]/10 font-bold"
-                                    size="lg"
-                                >
-                                    <Zap size={16} className="text-[var(--accent)]" /> Bypass Login (Local Test Mode)
-                                </Button>
-                            </div>
-
                             <div className="text-center pt-2">
                                 <button 
                                     type="button" 
@@ -192,12 +163,6 @@ const Login: React.FC<Props> = ({ onLoginSuccess }) => {
                         </form>
                     )}
                 </Card>
-                
-                <div className="text-center mt-6">
-                    <p className="text-[11px] text-[var(--text-secondary)] font-mono opacity-70">
-                        Local Test Mode uses in-memory / browser persistence
-                    </p>
-                </div>
             </div>
         </div>
     );
